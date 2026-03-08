@@ -146,7 +146,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Add New Tax', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5, fontFamily: 'NotoSans')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -352,7 +352,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
         _buildSectionLabel("Create New Tax Category"),
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -471,7 +471,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyState("No tax rates configured.");
             final taxes = snapshot.data!.docs;
             return Container(
-              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
               child: ListView.separated(
                 shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
                 itemCount: taxes.length,
@@ -510,7 +510,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Delete Tax Category?'),
         content: Text('Remove "$name"? This will affect products mapped to this category.'),
         actions: [
@@ -529,7 +529,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
         _buildSectionLabel("Default Quick Billing Taxation"),
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -608,7 +608,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyState("Configure tax rates in the first tab.");
             final taxes = snapshot.data!.docs;
             return Container(
-              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
               child: ListView.separated(
                 shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
                 itemCount: taxes.length,

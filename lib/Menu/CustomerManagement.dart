@@ -60,7 +60,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         elevation: 0,
         child: Padding(
@@ -106,7 +106,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         elevation: 0,
         child: Padding(

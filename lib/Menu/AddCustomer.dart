@@ -248,7 +248,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Select Contact', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         content: SizedBox(
           width: double.maxFinite,
@@ -840,7 +840,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Delete Customer?', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
         content: Column(
           mainAxisSize: MainAxisSize.min,

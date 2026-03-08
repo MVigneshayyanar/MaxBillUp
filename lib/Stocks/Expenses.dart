@@ -932,7 +932,7 @@ class ExpenseDetailsPage extends StatelessWidget {
             padding: const EdgeInsets.all(12.0),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [
                   CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const HeroIcon(HeroIcons.documentText, color: kOrange, size: 18)),
@@ -990,7 +990,7 @@ class ExpenseDetailsPage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Delete Expense?', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('Are you sure you want to delete this expense? This action cannot be undone.'),
         actions: [

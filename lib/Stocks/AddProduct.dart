@@ -1285,7 +1285,7 @@ class _AddProductPageState extends State<AddProductPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text("Delete Unit?", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         content: Text('Are you sure you want to delete "$unitName"? Products using this unit will not be affected.'),
         actions: [
@@ -1415,7 +1415,7 @@ class _AddProductPageState extends State<AddProductPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text("New Unit", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         content: ValueListenableBuilder<TextEditingValue>(
       valueListenable: unitController,
@@ -1472,7 +1472,7 @@ class _AddProductPageState extends State<AddProductPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text("New Tax Rate", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,

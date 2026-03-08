@@ -351,7 +351,7 @@ class _VendorsPageState extends State<VendorsPage> {
       offset: const Offset(0, 40),
       color: kWhite,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: kPrimaryColor, width: 1),
       ),
       onSelected: (value) {
@@ -419,7 +419,7 @@ class _VendorsPageState extends State<VendorsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         title: const Text('Add New Vendor', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         content: SingleChildScrollView(
@@ -471,7 +471,7 @@ class _VendorsPageState extends State<VendorsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         title: const Text('Edit Vendor Details', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         content: SingleChildScrollView(
@@ -519,7 +519,7 @@ class _VendorsPageState extends State<VendorsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         title: const Text('Remove Vendor?', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87)),
         content: Text('Are you sure you want to remove "${vendor['name']}"? This action cannot be undone.', style: const TextStyle(color: kBlack54, fontSize: 13)),
@@ -815,7 +815,7 @@ class _VendorDetailsPageState extends State<VendorDetailsPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         title: const Text('Edit Vendor', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [

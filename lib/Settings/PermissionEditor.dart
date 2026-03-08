@@ -328,4 +328,3 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
     );
   }
 }
-

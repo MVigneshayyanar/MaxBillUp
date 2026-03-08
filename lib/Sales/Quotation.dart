@@ -344,6 +344,7 @@ class _QuotationPageState extends State<QuotationPage> {
               customerPhone: _selectedCustomerPhone,
               customerGSTIN: _selectedCustomerGST,
               isQuotation: true, // Mark this as a quotation
+              showCelebration: false,
             ),
           ),
         );

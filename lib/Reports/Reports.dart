@@ -308,7 +308,7 @@ class _ReportsPageState extends State<ReportsPage> {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kGrey200),
       ),
       child: Material(
@@ -350,7 +350,7 @@ class _ReportsPageState extends State<ReportsPage> {
             // All checks passed, open the report
             _navigateTo(viewName);
           },
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
@@ -1961,7 +1961,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
       ),
       child: Row(
@@ -2134,7 +2134,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.5)),
       ),
       child: Column(
@@ -2397,6 +2397,7 @@ class _DayBookPageState extends State<DayBookPage> {
 
                               // Build transaction rows
                               List<Map<String, dynamic>> allTransactions = [];
+                              final Set<String> seenTxnIds = {}; // prevent duplicates
 
                               // Process Sales
                               for (var doc in filteredSales) {
@@ -2405,6 +2406,10 @@ class _DayBookPageState extends State<DayBookPage> {
                                 if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
                                   continue;
                                 }
+
+                                // Deduplicate by doc ID
+                                if (seenTxnIds.contains(doc.id)) continue;
+                                seenTxnIds.add(doc.id);
 
                                 double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
                                 String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
@@ -2426,9 +2431,19 @@ class _DayBookPageState extends State<DayBookPage> {
                                 } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
                                   paymentInOnline += total;
                                 } else if (mode.contains('credit')) {
-                                  // Full credit sale — partial cash portion tracked separately
+                                  // Credit sale — use creditAmount (new field) or derive from partials
                                   final partialCash = double.tryParse(data['cashReceived_partial']?.toString() ?? '0') ?? 0;
-                                  final creditIssued = double.tryParse(data['creditIssued_partial']?.toString() ?? '0') ?? total;
+                                  double creditIssued;
+                                  if (data['creditAmount'] != null) {
+                                    // New field — always present for credit sales
+                                    creditIssued = (double.tryParse(data['creditAmount'].toString()) ?? total);
+                                  } else if (data['creditIssued_partial'] != null) {
+                                    // Partial credit sale (old format)
+                                    creditIssued = (double.tryParse(data['creditIssued_partial'].toString()) ?? (total - partialCash));
+                                  } else {
+                                    // Full credit sale (old format — no partial fields saved)
+                                    creditIssued = total;
+                                  }
                                   if (partialCash > 0) paymentInCash += partialCash;
                                   saleCreditGiven += creditIssued;
                                 }
@@ -2446,7 +2461,7 @@ class _DayBookPageState extends State<DayBookPage> {
                                 }
 
                                 allTransactions.add({
-                                  'category': 'Sale',
+                                  'category': mode.contains('credit') ? 'Sale On Credit' : 'Sale',
                                   'particulars': data['invoiceNumber']?.toString() ?? 'N/A',
                                   'name': data['customerName']?.toString() ?? 'Guest',
                                   'total': total,
@@ -2523,6 +2538,10 @@ class _DayBookPageState extends State<DayBookPage> {
                                 final status = (data['status'] ?? '').toString().toLowerCase();
                                 final paidAmount = double.tryParse(data['paidAmount']?.toString() ?? '0') ?? 0;
 
+                                // Deduplicate by doc ID
+                                if (seenTxnIds.contains(doc.id)) continue;
+                                seenTxnIds.add(doc.id);
+
                                 if (type.contains('purchase') || type.contains('expense') || type.isEmpty || doc.reference.path.contains('purchaseCreditNotes')) {
                                   // Purchase on credit
                                   purchaseCreditAdded += amount;
@@ -2593,6 +2612,13 @@ class _DayBookPageState extends State<DayBookPage> {
                                 double amount = double.tryParse(data['totalAmount']?.toString() ?? '0') ?? 0;
                                 String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
 
+                                // Skip credit-mode purchases — they are handled by purchaseCreditNotes loop
+                                if (mode.contains('credit')) continue;
+
+                                // Deduplicate by doc ID
+                                if (seenTxnIds.contains(doc.id)) continue;
+                                seenTxnIds.add(doc.id);
+
                                 totalPurchasesCount++;
                                 totalPurchasesAmount += amount;
 
@@ -2647,6 +2673,8 @@ class _DayBookPageState extends State<DayBookPage> {
                                             saleCreditGiven, saleCreditReceived,
                                             purchaseCreditAdded, purchaseCreditPaid,
                                             additionCredit,
+                                            paymentInCash, paymentInOnline,
+                                            paymentOutCash, paymentOutOnline,
                                           ),
 
                                           const SizedBox(height: 20),
@@ -2736,7 +2764,7 @@ class _DayBookPageState extends State<DayBookPage> {
       padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.6)),
       ),
       child: Column(
@@ -2850,7 +2878,7 @@ class _DayBookPageState extends State<DayBookPage> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: isCancelled || isReturned ? statusColor.withOpacity(0.3) : kBorderColor.withOpacity(0.4)),
         // boxShadow: [
         //   BoxShadow(
@@ -3276,9 +3304,15 @@ class _DayBookPageState extends State<DayBookPage> {
       double purchaseCreditAdded,
       double purchaseCreditPaid,
       double additionCredit,
+      double paymentInCash,
+      double paymentInOnline,
+      double paymentOutCash,
+      double paymentOutOnline,
       ) {
-    final netCashFlow =
-        salesAmount - expensesAmount - purchasesAmount;
+    // Net cashflow based on actual cash received/paid (excludes credit given which hasn't been received yet)
+    final actualMoneyIn = paymentInCash + paymentInOnline;
+    final actualMoneyOut = paymentOutCash + paymentOutOnline;
+    final netCashFlow = actualMoneyIn - actualMoneyOut;
     final isPositive = netCashFlow >= 0;
 
     return Padding(
@@ -3328,7 +3362,7 @@ class _DayBookPageState extends State<DayBookPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isPositive ? 'Positive Net Cashflow' : 'Negative Net Cashflow',
+                        isPositive ? 'Actual Cash Flow (In)' : 'Actual Cash Flow (Out)',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -3346,6 +3380,16 @@ class _DayBookPageState extends State<DayBookPage> {
                           height: 1.1,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      if (saleCreditGiven > 0)
+                        Text(
+                          'Total Sales: $_currencySymbol${salesAmount.toStringAsFixed(2)} (incl. $_currencySymbol${saleCreditGiven.toStringAsFixed(2)} credit)',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withOpacity(0.7),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -3601,7 +3645,7 @@ class _DayBookPageState extends State<DayBookPage> {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: kSurfaceColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kBorderColor.withOpacity(0.35)),
           // boxShadow: [
           //   BoxShadow(
@@ -4314,7 +4358,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
       ),
       child: Row(
@@ -4404,7 +4448,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
         // boxShadow: [
         //   BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
@@ -4635,7 +4679,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
         // boxShadow: [
         //   BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
@@ -4776,7 +4820,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
         // boxShadow: [
         //   BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
@@ -9008,7 +9052,7 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: kSurfaceColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
           ),
           child: Row(
@@ -9130,7 +9174,7 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
         //boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
       ),
@@ -9207,7 +9251,7 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
         //boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
       ),
@@ -9375,7 +9419,7 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
         //boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
       ),
@@ -9477,7 +9521,7 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kWarningOrange.withValues(alpha: 0.3)),
         //boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
       ),
@@ -10871,7 +10915,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.5)),
         // boxShadow: [
         //   BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
@@ -11024,7 +11068,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.5)),
         // boxShadow: [
         //   BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
@@ -11292,7 +11336,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: (isPositive ? kIncomeGreen : kExpenseRed).withOpacity(0.2)),
       ),
       child: Row(
@@ -11403,7 +11447,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.5)),
       ),
       child: Column(
@@ -11425,7 +11469,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
@@ -11455,7 +11499,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.6)),
       ),
       child: Row(
@@ -12024,7 +12068,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.5)),
       ),
       child: Row(
@@ -12057,7 +12101,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: themeColor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: themeColor.withOpacity(0.2)),
       ),
       child: Row(

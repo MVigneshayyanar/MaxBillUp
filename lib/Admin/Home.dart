@@ -145,14 +145,14 @@ class StoresTab extends StatelessWidget {
             return Container(
               decoration: BoxDecoration(
                 color: kWhite,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: kGrey200),
               ),
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => StoreDetailPage(storeId: store.id, storeData: data))),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -274,7 +274,7 @@ class KnowledgeTab extends StatelessWidget {
               return Container(
                 decoration: BoxDecoration(
                   color: kWhite,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: kGrey200),
                 ),
                 child: ListTile(
@@ -314,7 +314,7 @@ class KnowledgeTab extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(docId == null ? 'NEW ARTICLE' : 'EDIT ARTICLE',
             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
         content: SingleChildScrollView(
@@ -514,7 +514,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
 
             _buildSectionLabel('BUSINESS IDENTITY'),
             Container(
-              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
               child: Column(
                 children: [
                   _detailRow(HeroIcons.user, 'Legal Owner', storeData['ownerName']),
@@ -532,7 +532,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
 
             _buildSectionLabel('SUBSCRIPTION DETAILS'),
             Container(
-              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
               child: Column(
                 children: [
                   _editableDetailRow(
@@ -656,7 +656,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           backgroundColor: kWhite,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text('CHANGE PLAN', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -755,7 +755,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
         String count = snapshot.hasData ? '${snapshot.data!.docs.length}' : '...';
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 20),
-          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
           child: Column(
             children: [
               Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.08), shape: BoxShape.circle), child: HeroIcon(icon, color: color, size: 20)),

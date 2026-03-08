@@ -579,7 +579,7 @@ class _CategoryPageState extends State<CategoryPage> {
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         title: Text(context.tr('edit_category'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         content: Container(
@@ -636,7 +636,7 @@ class _CategoryPageState extends State<CategoryPage> {
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         title: Text(context.tr('delete_category'), style: const TextStyle(fontWeight: FontWeight.w800)),
         content: Text('${context.tr('are_you_sure_delete')} "$name"?', style: const TextStyle(color: kBlack54, fontSize: 14)),
@@ -659,7 +659,7 @@ class _CategoryPageState extends State<CategoryPage> {
     showDialog(
       context: context,
       builder: (c) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         child: Container(
           padding: const EdgeInsets.all(20),
@@ -944,7 +944,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
     showDialog(
       context: context,
       builder: (c) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         child: Container(
           padding: const EdgeInsets.all(20),

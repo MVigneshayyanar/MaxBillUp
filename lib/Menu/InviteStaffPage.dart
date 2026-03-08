@@ -452,7 +452,7 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
       elevation: 0,
       offset: const Offset(0, 48),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: kGrey200, width: 1),
       ),
       onSelected: (value) {

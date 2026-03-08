@@ -105,7 +105,7 @@ class _LoginPageState extends State<LoginPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kBlack87)),
         content: Text(message, style: const TextStyle(color: kBlack54, height: 1.5, fontWeight: FontWeight.w500)),
         actions: [

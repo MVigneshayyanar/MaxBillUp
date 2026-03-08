@@ -460,7 +460,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),
                 decoration: BoxDecoration(
                   color: isSelected ? themeColor.withOpacity(0.05) : kWhite,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected ? themeColor : kGrey200,
                     width: isSelected ? 2 : 1,
@@ -630,7 +630,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.2), width: 2),
       ),
       child: Column(
@@ -698,7 +698,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         decoration: BoxDecoration(
           color: kPrimaryColor.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kPrimaryColor.withValues(alpha: 0.3), width: 1.5),
         ),
         child: Row(

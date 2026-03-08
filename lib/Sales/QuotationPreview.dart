@@ -93,7 +93,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12), // Reduced padding
               child: Container(
-                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
                 child: Column(
                   children: [
                     Container(

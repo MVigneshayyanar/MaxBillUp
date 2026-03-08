@@ -84,7 +84,7 @@ class CommonWidgets {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 decoration: BoxDecoration(
                   color: kPrimaryColor,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
                       color: kPrimaryColor.withOpacity(0.3),
@@ -200,7 +200,7 @@ class CommonWidgets {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(savedOrderId != null ? 'Update Order' : 'Save Order',
             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87)),
         content: Column(
@@ -554,7 +554,7 @@ class CommonWidgets {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: kWhite,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text('NEW CUSTOMER', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
           content: SingleChildScrollView(
             child: Column(
@@ -761,7 +761,7 @@ class CommonWidgets {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: kWhite,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text('VERIFY CUSTOMER', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
           content: Column(
             mainAxisSize: MainAxisSize.min,

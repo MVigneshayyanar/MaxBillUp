@@ -116,7 +116,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           builder: (context) {
             final passCtrl = TextEditingController();
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               title: const Text("Check Verification", style: TextStyle(fontWeight: FontWeight.bold)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -409,7 +409,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       offset: const Offset(0, 42),
       color: kWhite, // Changed background to white
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: kPrimaryColor, width: 1), // Changed outline to blue
       ),
       onSelected: (v) async {
@@ -470,7 +470,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     showDialog(
       context: ctx,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         title: Text(n, style: const TextStyle(fontWeight: FontWeight.w800, color: kBlack87)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -498,7 +498,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         title: const Text('Remove Staff Member?', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87)),
         content: Text('This will permanently delete access for $name. They won\'t be able to login again with their email/password.', style: const TextStyle(color: kBlack54, fontSize: 13)),
@@ -892,7 +892,7 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
 
   Widget _buildPermGroup(String title, List<String> keys) {
     return Container(
-      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

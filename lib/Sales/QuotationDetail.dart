@@ -105,7 +105,7 @@ class QuotationDetailPage extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: kWhite,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: kGrey200),
                   ),
                   child: Row(
@@ -303,7 +303,7 @@ class QuotationDetailPage extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Delete Quotation', style: TextStyle(fontWeight: FontWeight.w900, color: kBlack87)),
         content: const Text('Are you sure you want to permanently delete this quotation?', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w500)),
         actions: [

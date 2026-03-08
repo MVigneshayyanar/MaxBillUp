@@ -636,13 +636,13 @@ class _MenuPageState extends State<MenuPage> {
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
             color: kWhite,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: kGrey200),
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               onTap: () {
                 // If provider is not ready yet, allow navigation (avoid flicker/false blocks)
                 if (!isProviderReady) {
@@ -730,13 +730,13 @@ class _MenuPageState extends State<MenuPage> {
         return Container(
           decoration: BoxDecoration(
             color: kWhite,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: kGrey200),
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               onTap: () {
                 if (!isProviderReady) {
                   setState(() => _currentView = viewKey);
@@ -806,7 +806,7 @@ class _MenuPageState extends State<MenuPage> {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
           color: kWhite,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kGrey200.withOpacity(0.5))
       ),
       child: Theme(
@@ -1865,6 +1865,7 @@ class SalesDetailPage extends StatelessWidget {
               customerName: data['customerName'],
               customerPhone: data['customerPhone'],
               customerGSTIN: data['customerGST'],
+              showCelebration: false,
             ),
           ),
         );
@@ -3257,7 +3258,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
             padding: const EdgeInsets.all(12.0),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [
                   CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const HeroIcon(HeroIcons.user, color: kOrange, size: 18)),
@@ -4754,7 +4755,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           backgroundColor: kWhite,
           title: const Text('Settle Purchase', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87, fontSize: 18)),
           content: Column(
@@ -4807,7 +4808,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           backgroundColor: kWhite,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -7046,7 +7047,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
 
                 return Container(
                   padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))]),
+                  decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))]),
                   child: Column(
                     children: [
                       Row(
@@ -7720,7 +7721,7 @@ class _EditBillPageState extends State<EditBillPage> {
     return Container(
       decoration: BoxDecoration(
         color: kCardBg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: hasCustomer ? kHeaderColor.withOpacity(0.3) : kOrange),
       ),
       child: Material(
@@ -7741,7 +7742,7 @@ class _EditBillPageState extends State<EditBillPage> {
               },
             );
           },
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
@@ -7796,7 +7797,7 @@ class _EditBillPageState extends State<EditBillPage> {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(40),
-        decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+        decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
         child: const Column(
           children: [
             HeroIcon(HeroIcons.shoppingCart, color: kGrey300, size: 40),
@@ -7821,7 +7822,7 @@ class _EditBillPageState extends State<EditBillPage> {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: kCardBg,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: kGrey200),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))],
           ),
@@ -8167,7 +8168,7 @@ class _EditBillPageState extends State<EditBillPage> {
         return StatefulBuilder(builder: (context, setDialogState) {
           return Dialog(
             backgroundColor: kWhite,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: SingleChildScrollView(
@@ -8378,7 +8379,7 @@ class _EditBillPageState extends State<EditBillPage> {
                                 showDialog(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     title: const Text('Select Tax', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                                     content: Column(
                                       mainAxisSize: MainAxisSize.min,
@@ -8544,7 +8545,7 @@ class _EditBillPageState extends State<EditBillPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Apply discount', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
         content: Container(
           decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
@@ -8629,7 +8630,7 @@ class _EditBillPageState extends State<EditBillPage> {
           return StatefulBuilder(
             builder: (context, setDialogState) => AlertDialog(
               backgroundColor: kWhite,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               title: const Text('Select credit notes', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
               content: SizedBox(
                 width: double.maxFinite,

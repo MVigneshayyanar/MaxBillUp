@@ -425,7 +425,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               backgroundColor: kWhite,
               title: const Text('Add New Type', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
               content: SingleChildScrollView(
@@ -560,7 +560,7 @@ class _EditDeleteCategoryDialogState extends State<_EditDeleteCategoryDialog> {
   }
 
   Future<void> _delete() async {
-    final confirm = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), title: const Text('Delete Category?'), content: const Text('This will remove this category from the system.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: kErrorColor), onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: kWhite)))]));
+    final confirm = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), title: const Text('Delete Category?'), content: const Text('This will remove this category from the system.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: kErrorColor), onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: kWhite)))]));
     if (confirm == true) {
       setState(() => _isLoading = true);
       await FirestoreService().deleteDocument('expenseCategories', widget.docId);
@@ -572,7 +572,7 @@ class _EditDeleteCategoryDialogState extends State<_EditDeleteCategoryDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       backgroundColor: kWhite,
       title: const Text('Edit Type', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
       content: Column(
@@ -642,7 +642,7 @@ class _EditDeleteExpenseNameDialogState extends State<_EditDeleteExpenseNameDial
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       backgroundColor: kWhite,
       title: const Text('Edit expense title', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
       content: Container(
@@ -760,7 +760,7 @@ class _ExpenseNameDetailsPageState extends State<ExpenseNameDetailsPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         title: const Text('Delete Expense?', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87)),
         content: const Text('This expense will be permanently removed. This action cannot be undone.', style: TextStyle(color: kBlack54, fontSize: 13)),
@@ -793,7 +793,7 @@ class _ExpenseNameDetailsPageState extends State<ExpenseNameDetailsPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         title: const Text('Edit Expense Name', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         content: TextField(

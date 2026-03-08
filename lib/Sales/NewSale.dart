@@ -745,7 +745,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Clear Cart?', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('This will remove all items from your current order and reset the page.'),
         actions: [

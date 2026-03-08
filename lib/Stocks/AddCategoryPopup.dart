@@ -98,7 +98,7 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       backgroundColor: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(24.0),

@@ -357,7 +357,7 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: kWhite,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: kGrey200),
           ),
           child: Row(
@@ -374,7 +374,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           onTap: () => Navigator.pop(context),
                           child: InteractiveViewer(
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                               child: Image.network(logoUrl, fit: BoxFit.contain),
                             ),
                           ),
@@ -1079,7 +1079,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Row(
           children: [
             Container(
@@ -1116,7 +1116,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Remove Logo?', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, fontFamily: 'NotoSans')),
         content: const Text('Are you sure you want to remove your business logo?', style: TextStyle(color: kBlack54, fontFamily: 'Lato')),
         actions: [
@@ -1344,122 +1344,129 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   );
 
   Widget _buildModernField(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false}) {
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: ctrl,
-      builder: (context, value, _) {
-        final bool isFilled = value.text.isNotEmpty;
-        // For mandatory: always primary. For non-mandatory: grey when empty, kPrimaryColor when filled
-        final Color borderColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kGrey200);
-        final double borderWidth = isMandatory ? 1.5 : (isFilled ? 1.5 : 1.0);
-        final Color labelColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54);
-        final Color iconColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54);
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: TextFormField(
-            controller: ctrl,
-            enabled: enabled,
-            keyboardType: type,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
-            decoration: InputDecoration(
-              labelText: isMandatory ? '$label *' : label,
-              labelStyle: TextStyle(color: labelColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
-              prefixIcon: Icon(icon, color: iconColor, size: 20),
-              filled: true,
-              fillColor: const Color(0xFFF8F9FA),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: borderColor, width: borderWidth),
+    return _FocusAwareField(
+      ctrl: ctrl,
+      builder: (isFocused) {
+        return ValueListenableBuilder<TextEditingValue>(
+          valueListenable: ctrl,
+          builder: (context, value, _) {
+            final bool isFilled = value.text.isNotEmpty;
+            // Colors: primary only when focused, neutral when unfocused
+            final Color borderColor = isFocused ? kPrimaryColor : kGrey200;
+            final double borderWidth = isFocused ? 2.0 : 1.0;
+            final Color labelColor = isFocused ? kPrimaryColor : kBlack54;
+            final Color iconColor = isFocused ? kPrimaryColor : kBlack54;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: TextFormField(
+                controller: ctrl,
+                enabled: enabled,
+                keyboardType: type,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
+                decoration: InputDecoration(
+                  labelText: isMandatory ? '$label *' : label,
+                  labelStyle: TextStyle(color: labelColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
+                  prefixIcon: Icon(icon, color: iconColor, size: 20),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: borderColor, width: borderWidth),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: borderColor, width: borderWidth),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                  ),
+                  disabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: isFilled ? kGrey300 : kGrey200, width: 1.0),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kErrorColor),
+                  ),
+                  floatingLabelStyle: TextStyle(color: isFocused ? kPrimaryColor : kBlack54, fontWeight: FontWeight.w900),
+                ),
+                validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
+                onChanged: (_) => _checkForChanges(),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: borderColor, width: borderWidth),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-              ),
-              disabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: isFilled ? kBlack54 : kGrey200, width: isFilled ? 1.5 : 1.0),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: kErrorColor),
-              ),
-              floatingLabelStyle: TextStyle(color: isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54), fontWeight: FontWeight.w900),
-            ),
-            validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
-            onChanged: (_) => _checkForChanges(),
-          ),
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildModernFieldWithHint(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false, String? hint}) {
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: ctrl,
-      builder: (context, value, _) {
-        final bool isFilled = value.text.isNotEmpty;
-        // For mandatory: always primary. For non-mandatory: grey when empty, kPrimaryColor when filled
-        final Color borderColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kGrey200);
-        final double borderWidth = isMandatory ? 1.5 : (isFilled ? 1.5 : 1.0);
-        final Color labelColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54);
-        final Color iconColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54);
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: TextFormField(
-            controller: ctrl,
-            enabled: enabled,
-            keyboardType: type,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
-            decoration: InputDecoration(
-              labelText: isMandatory ? '$label *' : label,
-              hintText: hint,
-              hintStyle: const TextStyle(color: kGrey400, fontSize: 12, fontWeight: FontWeight.w400),
-              labelStyle: TextStyle(color: labelColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
-              prefixIcon: Icon(icon, color: iconColor, size: 20),
-              filled: true,
-              fillColor: const Color(0xFFF8F9FA),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: borderColor, width: borderWidth),
+    return _FocusAwareField(
+      ctrl: ctrl,
+      builder: (isFocused) {
+        return ValueListenableBuilder<TextEditingValue>(
+          valueListenable: ctrl,
+          builder: (context, value, _) {
+            final bool isFilled = value.text.isNotEmpty;
+            // Colors: primary only when focused, neutral when unfocused
+            final Color borderColor = isFocused ? kPrimaryColor : kGrey200;
+            final double borderWidth = isFocused ? 2.0 : 1.0;
+            final Color labelColor = isFocused ? kPrimaryColor : kBlack54;
+            final Color iconColor = isFocused ? kPrimaryColor : kBlack54;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: TextFormField(
+                controller: ctrl,
+                enabled: enabled,
+                keyboardType: type,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
+                decoration: InputDecoration(
+                  labelText: isMandatory ? '$label *' : label,
+                  hintText: hint,
+                  hintStyle: const TextStyle(color: kGrey400, fontSize: 12, fontWeight: FontWeight.w400),
+                  labelStyle: TextStyle(color: labelColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
+                  prefixIcon: Icon(icon, color: iconColor, size: 20),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: borderColor, width: borderWidth),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: borderColor, width: borderWidth),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                  ),
+                  disabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: isFilled ? kGrey300 : kGrey200, width: 1.0),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kErrorColor),
+                  ),
+                  floatingLabelStyle: TextStyle(color: isFocused ? kPrimaryColor : kBlack54, fontWeight: FontWeight.w900),
+                ),
+                validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
+                onChanged: (_) => _checkForChanges(),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: borderColor, width: borderWidth),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-              ),
-              disabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: isFilled ? kBlack54 : kGrey200, width: isFilled ? 1.5 : 1.0),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: kErrorColor),
-              ),
-              floatingLabelStyle: TextStyle(color: isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54), fontWeight: FontWeight.w900),
-            ),
-            validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
-            onChanged: (_) => _checkForChanges(),
-          ),
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildBusinessPhoneWithCountryCode() {
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: _phoneCtrl,
-      builder: (context, value, _) {
-        final bool isFilled = value.text.isNotEmpty;
-        final Color borderColor = isFilled ? kPrimaryColor : kGrey200;
-        final double borderWidth = isFilled ? 1.5 : 1.0;
+    return _FocusAwareField(
+      ctrl: _phoneCtrl,
+      builder: (isFocused) {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           child: TextFormField(
@@ -1469,7 +1476,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
             decoration: InputDecoration(
               labelText: 'Business Contact Number *',
-              labelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
+              labelStyle: TextStyle(color: isFocused ? kPrimaryColor : kBlack54, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
               prefixIcon: GestureDetector(
                 onTap: _showCountryCodePickerProfile,
                 child: Container(
@@ -1484,11 +1491,11 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: isFilled ? kPrimaryColor : kBlack54,
+                          color: isFocused ? kPrimaryColor : kBlack54,
                           fontFamily: 'NotoSans',
                         ),
                       ),
-                      Icon(Icons.arrow_drop_down, size: 16, color: isFilled ? kPrimaryColor : kBlack54),
+                      Icon(Icons.arrow_drop_down, size: 16, color: isFocused ? kPrimaryColor : kBlack54),
                     ],
                   ),
                 ),
@@ -1497,18 +1504,18 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
               fillColor: const Color(0xFFF8F9FA),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: borderColor, width: borderWidth),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: isFocused ? kPrimaryColor : kGrey200, width: isFocused ? 2.0 : 1.0),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: borderColor, width: borderWidth),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: isFocused ? kPrimaryColor : kGrey200, width: isFocused ? 2.0 : 1.0),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
               ),
-              floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontWeight: FontWeight.w900),
+              floatingLabelStyle: TextStyle(color: isFocused ? kPrimaryColor : kBlack54, fontWeight: FontWeight.w900),
             ),
             validator: (v) => v == null || v.isEmpty ? 'Business Contact Number is required' : null,
             onChanged: (_) => _checkForChanges(),
@@ -1617,10 +1624,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   }
 
   Widget _buildLocationField() {
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: _locCtrl,
-      builder: (context, value, _) {
-        final bool isFilled = value.text.isNotEmpty;
+    return _FocusAwareField(
+      ctrl: _locCtrl,
+      builder: (isFocused) {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           child: TextFormField(
@@ -1631,15 +1637,24 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             minLines: 1,
             decoration: InputDecoration(
               labelText: "Address",
-              labelStyle: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
-              prefixIcon: const Icon(Icons.location_on_rounded, color: kBlack54, size: 20),
-              
-              
-              
-              
-              
-              
-              floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontWeight: FontWeight.w900),
+              labelStyle: TextStyle(color: isFocused ? kPrimaryColor : kBlack54, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
+              prefixIcon: Icon(Icons.location_on_rounded, color: isFocused ? kPrimaryColor : kBlack54, size: 20),
+              filled: true,
+              fillColor: const Color(0xFFF8F9FA),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: isFocused ? kPrimaryColor : kGrey200, width: isFocused ? 2.0 : 1.0),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: isFocused ? kPrimaryColor : kGrey200, width: isFocused ? 2.0 : 1.0),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+              ),
+              floatingLabelStyle: TextStyle(color: isFocused ? kPrimaryColor : kBlack54, fontWeight: FontWeight.w900),
             ),
             onChanged: (_) => _checkForChanges(),
           ),
@@ -1656,7 +1671,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: kWhite,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kBlack54),
         ),
         child: ListTile(
@@ -1825,7 +1840,8 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
       _thermalSaleInvoiceText = prefs.getString('thermal_sale_invoice_text') ?? 'Thank you for your purchase!';
       _thermalShowTaxColumnInTable = prefs.getBool('thermal_show_tax_column') ?? false;
 
-      // A4 settin_a4ShowHeader = prefs.getBool('a4_show_header') ?? true;
+      // A4 settings
+      _a4ShowHeader = prefs.getBool('a4_show_header') ?? true;
       _a4ShowLogo = prefs.getBool('a4_show_logo') ?? true;
       _a4ShowCustomerInfo = prefs.getBool('a4_show_customer_info') ?? true;
       _a4ShowItemTable = prefs.getBool('a4_show_item_table') ?? true;
@@ -2221,7 +2237,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
         // Color Theme Selector
         _buildSectionLabel('COLOR THEME'),
         Container(
-          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2358,9 +2374,10 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
                     decoration: BoxDecoration(
                       color: isSelected ? chipColor : kWhite,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: chipColor, width: 1.5),
+                      border: Border.all(color: isSelected ? chipColor : kGrey200, width: isSelected ? 1.5 : 1),
+                      boxShadow: isSelected ? [BoxShadow(color: chipColor.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))] : [],
                     ),
-                    child: Text(type == 'Quotation/Estimation' ? 'Quotation' : type, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: isSelected ? kWhite : chipColor)),
+                    child: Text(type == 'Quotation/Estimation' ? 'Quotation' : type, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600, fontSize: 12, fontFamily: 'NotoSans', color: isSelected ? kWhite : chipColor)),
                   ),
                 ),
               );
@@ -2524,8 +2541,8 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kPrimaryColor.withAlpha(15),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kPrimaryColor.withAlpha(50)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kPrimaryColor.withAlpha(40)),
       ),
       child: Row(
         children: [
@@ -2541,7 +2558,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
               children: [
                 Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans', color: kBlack87)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: 12, color: kBlack54, fontFamily: 'Lato')),
+                Text(subtitle, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500, fontFamily: 'Lato')),
               ],
             ),
           ),
@@ -2561,8 +2578,15 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(color: isSelected ? kPrimaryColor.withAlpha(25) : kGreyBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: isSelected ? kPrimaryColor : kGrey200)),
-          child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: isSelected ? kPrimaryColor : kBlack54, fontFamily: 'Lato')),
+          decoration: BoxDecoration(color: isSelected ? kPrimaryColor.withAlpha(25) : kGreyBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: isSelected ? kPrimaryColor : kGrey300)),
+          child: Column(
+            children: [
+              Icon(Icons.receipt_long_rounded, color: isSelected ? kWhite : kBlack54, size: 24),
+              const SizedBox(height: 6),
+              Text("58mm", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: isSelected ? kWhite : kBlack87)),
+              Text("2 inch", style: TextStyle(fontSize: 10, color: isSelected ? kWhite.withOpacity(0.8) : kBlack54)),
+            ],
+          ),
         ),
       ),
     );
@@ -2571,13 +2595,27 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
   Widget _buildTextFieldSection(String label, String value, Function(String) onChanged) {
     final controller = TextEditingController(text: value);
     return Container(
-      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
         const SizedBox(height: 8),
-        TextField(controller: controller, onChanged: onChanged, maxLines: 2, style: const TextStyle(fontSize: 14, fontFamily: 'Lato'),
-          decoration: InputDecoration(hintText: 'Enter $label', hintStyle: const TextStyle(color: kGrey400, fontSize: 12),   ),
+        TextField(
+          controller: controller,
+          onChanged: onChanged,
+          maxLines: 2,
+          style: const TextStyle(fontSize: 14, fontFamily: 'Lato'),
+          decoration: InputDecoration(
+            hintText: 'Enter $label',
+            hintStyle: const TextStyle(color: kGrey400, fontSize: 12, fontWeight: FontWeight.w400),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: kGreyBg,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
         ),
       ]),
     );
@@ -2857,11 +2895,11 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
         body: ListView(padding: const EdgeInsets.all(16), children: [
           _buildSectionLabel('LANGUAGE'),
           Container(
-            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
             child: ListTile(
               leading: const Icon(Icons.language_rounded, color: kPrimaryColor),
               title: const Text('Language', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
-              subtitle: Text(_selectedLanguage, style: const TextStyle(fontSize: 12, color: kBlack54, fontFamily: 'Lato')),
+              subtitle: Text(_selectedLanguage, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500, fontFamily: 'Lato')),
               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
               onTap: () => widget.onNavigate('Language'),
             ),
@@ -2869,7 +2907,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
           const SizedBox(height: 16),
           _buildSectionLabel('APPEARANCE'),
           Container(
-            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
             child: ListTile(
               leading: Container(
                 width: 40, height: 40,
@@ -3017,13 +3055,13 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (_selectedDevice != null) Container(padding: const EdgeInsets.all(16), margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGoogleGreen.withOpacity(0.3))), child: Row(children: [const Icon(Icons.print_rounded, color: kGoogleGreen, size: 28), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("ACTIVE PRINTER", style: TextStyle(fontSize: 9, color: kGoogleGreen, fontWeight: FontWeight.w900, letterSpacing: 0.5)), Text(_selectedDevice!.platformName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kBlack87))])), IconButton(onPressed: () => setState(() => _selectedDevice = null), icon: const Icon(Icons.delete_sweep_rounded, color: kErrorColor))])),
+          if (_selectedDevice != null) Container(padding: const EdgeInsets.all(16), margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGoogleGreen.withOpacity(0.3))), child: Row(children: [const Icon(Icons.print_rounded, color: kGoogleGreen, size: 28), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("ACTIVE PRINTER", style: TextStyle(fontSize: 9, color: kGoogleGreen, fontWeight: FontWeight.w900, letterSpacing: 0.5)), Text(_selectedDevice!.platformName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kBlack87))])), IconButton(onPressed: () => setState(() => _selectedDevice = null), icon: const Icon(Icons.delete_sweep_rounded, color: kErrorColor))])),
 
           // Printer Width Setting
           Container(
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -3090,7 +3128,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
             child: Column(
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -3114,7 +3152,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
                   Row(children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(color: Colors.orange.withAlpha(25), borderRadius: BorderRadius.circular(8)),
                       child: const Icon(Icons.picture_as_pdf_rounded, color: Colors.orange, size: 20),
                     ),
                     const SizedBox(width: 12),
@@ -3164,7 +3202,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),title: const Text("Features", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [_SettingsGroup(children: [_SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) => setState(() => _enableAutoPrint = v)), _SwitchTile("Block Out-of-Stock Sales", _blockOutOfStock, (v) => setState(() => _blockOutOfStock = v)), Padding(padding: const EdgeInsets.all(16), child: Column(children: [Row(children: [const Text("Decimal Precision", style: TextStyle(fontWeight: FontWeight.w700)), const Spacer(), Text(_decimals.toInt().toString(), style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor))]), Slider(value: _decimals, min: 0, max: 4, divisions: 4, activeColor: kPrimaryColor, onChanged: (v) => setState(() => _decimals = v))]))])]));
+        ),title: const Text("Features", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [_SettingsGroup(children: [_SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) => setState(() => _enableAutoPrint = v)), _SwitchTile("Block Out-of-Stock Sales", _blockOutOfStock, (v) => setState(() => _blockOutOfStock = v)), Padding(padding: const EdgeInsets.all(16), child: Column(children: [Row(children: [const Text("Decimal Precision", style: TextStyle(fontWeight: FontWeight.w700)), const Spacer(), Text(_decimals.toInt().toString(), style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor))]), Slider(value: _decimals, min: 0, max: 4, divisions: 4, activeColor: kPrimaryColor, onChanged: (v) => setState(() => _decimals = v))]))])]));
 }
 
 // ==========================================
@@ -3274,7 +3312,7 @@ class ReceiptSettingsPage extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
               child: Icon(icon, color: color, size: 26),
             ),
             const SizedBox(width: 20),
@@ -3301,7 +3339,7 @@ class ReceiptSettingsPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kGrey200),
       ),
       child: Row(
@@ -3632,7 +3670,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
             decoration: BoxDecoration(
               color: sel ? col : kWhite,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: sel ? col : kGrey200, width: sel ? 1.5 : 1),
               boxShadow: sel ? [BoxShadow(color: col.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))] : [],
             ),
@@ -3962,7 +4000,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
               backgroundColor: kPrimaryColor,
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(
               _saving ? "Syncing..." : "Save configuration",
@@ -4055,7 +4093,7 @@ class _LanguagePageState extends State<LanguagePage> {
           Container(
             decoration: BoxDecoration(
               color: kWhite,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: kGrey200),
             ),
             child: Column(
@@ -4081,7 +4119,15 @@ class _LanguagePageState extends State<LanguagePage> {
                       ),
                       title: Row(
                         children: [
-                          Text(lang['name']!, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600, fontSize: 14, fontFamily: 'NotoSans', color: isComingSoon ? kGrey400 : (isSelected ? kPrimaryColor : kBlack87))),
+                          Text(
+                            lang['name'],
+                            style: TextStyle(
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                              fontSize: 14,
+                              fontFamily: 'NotoSans',
+                              color: isComingSoon ? kGrey400 : (isSelected ? kPrimaryColor : kBlack87),
+                            ),
+                          ),
                           if (isComingSoon) ...[
                             const SizedBox(width: 8),
                             Container(
@@ -4171,7 +4217,7 @@ class _ThemePageState extends State<ThemePage> {
           Container(
             decoration: BoxDecoration(
               color: kWhite,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: kGrey200),
             ),
             child: Column(
@@ -4260,7 +4306,7 @@ class HelpPage extends StatelessWidget {
           Container(
             decoration: BoxDecoration(
               color: kWhite,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: kGrey200),
             ),
             child: Column(
@@ -4311,7 +4357,7 @@ class HelpPage extends StatelessWidget {
           Container(
             decoration: BoxDecoration(
               color: kWhite,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: kGrey200),
             ),
             child: Column(
@@ -4386,7 +4432,7 @@ class FAQsPage extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kGrey200),
       ),
       child: ExpansionTile(
@@ -4441,7 +4487,7 @@ class UpcomingFeaturesPage extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kGrey200),
       ),
       child: Row(
@@ -4515,7 +4561,7 @@ class VideoTutorialsPage extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kGrey200),
       ),
       child: ListTile(
@@ -4549,7 +4595,7 @@ class _SettingsGroup extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kGrey200),
       ),
       child: Column(children: children),
@@ -4630,3 +4676,46 @@ class _SwitchTile extends StatelessWidget {
     );
   }
 }
+
+// ==========================================
+// UTILITY: Focus-aware field wrapper
+// ==========================================
+class _FocusAwareField extends StatefulWidget {
+  final TextEditingController ctrl;
+  final Widget Function(bool isFocused) builder;
+  const _FocusAwareField({required this.ctrl, required this.builder});
+  @override
+  State<_FocusAwareField> createState() => _FocusAwareFieldState();
+}
+
+class _FocusAwareFieldState extends State<_FocusAwareField> {
+  late FocusNode _focusNode;
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() => _isFocused = _focusNode.hasFocus);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: _focusNode,
+      child: widget.builder(_isFocused),
+    );
+  }
+}
+

@@ -633,7 +633,7 @@ class _BillPageState extends State<BillPage> {
                               showDialog(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   title: const Text('Select Tax', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                                   content: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -908,7 +908,7 @@ class _BillPageState extends State<BillPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateDialog) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           backgroundColor: kWhite,
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -1003,7 +1003,7 @@ class _BillPageState extends State<BillPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -1780,13 +1780,13 @@ class _BillPageState extends State<BillPage> {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             child: AspectRatio(
               aspectRatio: 1.0, // Make it a perfect square
               child: Container(
                 decoration: BoxDecoration(
                   color: themeColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: themeColor.withOpacity(0.15), width: 1.5),
                 ),
                 child: Column(
@@ -2291,6 +2291,10 @@ class _PaymentPageState extends State<PaymentPage> {
         'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'cost': e.cost, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
         'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed, 'discount': widget.discountAmount, 'creditUsed': widget.actualCreditUsed, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
         'paymentMode': widget.paymentMode, 'cashReceived': _cashReceived, 'change': _change > 0 ? _change : 0.0,
+        if (widget.paymentMode == 'Credit') ...{
+          // Always save creditAmount for ALL credit sales (full or partial)
+          'creditAmount': widget.totalAmount - _cashReceived,
+        },
         if (widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount) ...{
           'cashReceived_partial': _cashReceived,
           'creditIssued_partial': widget.totalAmount - _cashReceived,
@@ -2344,7 +2348,7 @@ class _PaymentPageState extends State<PaymentPage> {
       final customerDoc = await transaction.get(customerRef);
       if (customerDoc.exists) {
         final data = customerDoc.data() as Map<String, dynamic>?;
-        final currentBalance = (data?['balance'] as double?) ?? 0.0;
+        final currentBalance = ((data?['balance'] as num?) ?? 0).toDouble();
         transaction.update(customerRef, {
           'balance': currentBalance + amount,
           'lastUpdated': FieldValue.serverTimestamp()
@@ -2376,7 +2380,7 @@ class _PaymentPageState extends State<PaymentPage> {
       final customerDoc = await transaction.get(customerRef);
       if (customerDoc.exists) {
         final data = customerDoc.data() as Map<String, dynamic>?;
-        final currentTotalSales = (data?['totalSales'] as double?) ?? 0.0;
+        final currentTotalSales = ((data?['totalSales'] as num?) ?? 0).toDouble();
         transaction.update(customerRef, {
           'totalSales': currentTotalSales + amount,
           'lastUpdated': FieldValue.serverTimestamp()
@@ -2608,7 +2612,7 @@ class _PaymentPageState extends State<PaymentPage> {
                       duration: const Duration(milliseconds: 300),
                       height: 60,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         color: canPay ? primaryThemeColor : kGrey200,
                         boxShadow: canPay ? [BoxShadow(color: primaryThemeColor.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))] : [],
                       ),
@@ -2617,7 +2621,7 @@ class _PaymentPageState extends State<PaymentPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -2768,7 +2772,7 @@ class _PaymentPageState extends State<PaymentPage> {
     return Container(
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2)),
         ],
@@ -2777,7 +2781,7 @@ class _PaymentPageState extends State<PaymentPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _onKeyTap(key),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           child: Center(
             child: isBack
                 ? const HeroIcon(HeroIcons.backspace, color: kErrorColor, size: 24)
@@ -2839,9 +2843,9 @@ class SplitPaymentPage extends StatefulWidget {
 }
 
 class _SplitPaymentPageState extends State<SplitPaymentPage> {
-  final TextEditingController _cashController = TextEditingController(text: '0');
-  final TextEditingController _onlineController = TextEditingController(text: '0');
-  final TextEditingController _creditController = TextEditingController(text: '0');
+  final TextEditingController _cashController = TextEditingController(text: '');
+  final TextEditingController _onlineController = TextEditingController(text: '');
+  final TextEditingController _creditController = TextEditingController(text: '');
 
   double _cashAmount = 0.0;
   double _onlineAmount = 0.0;
@@ -2913,7 +2917,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       _creditController.text = remainingDue.toStringAsFixed(2);
     } else {
       _creditAmount = 0.0;
-      _creditController.text = '0.00';
+      _creditController.text = '';
     }
   }
 
@@ -3040,7 +3044,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       final customerDoc = await transaction.get(customerRef);
       if (customerDoc.exists) {
         final data = customerDoc.data() as Map<String, dynamic>?;
-        final currentBalance = (data?['balance'] as double?) ?? 0.0;
+        final currentBalance = ((data?['balance'] as num?) ?? 0).toDouble();
         transaction.update(customerRef, {
           'balance': currentBalance + amount,
           'lastUpdated': FieldValue.serverTimestamp()
@@ -3072,7 +3076,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       final customerDoc = await transaction.get(customerRef);
       if (customerDoc.exists) {
         final data = customerDoc.data() as Map<String, dynamic>?;
-        final currentTotalSales = (data?['totalSales'] as double?) ?? 0.0;
+        final currentTotalSales = ((data?['totalSales'] as num?) ?? 0).toDouble();
         transaction.update(customerRef, {
           'totalSales': currentTotalSales + amount,
           'lastUpdated': FieldValue.serverTimestamp()
@@ -3211,13 +3215,11 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                       const SizedBox(height: 24),
                       Container(
                         padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
+                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _buildSummaryItem('PAID', _totalPaid, Colors.white),
-                            Container(width: 1, height: 30, color: Colors.white.withOpacity(0.15)),
-                            _buildSummaryItem('REMAINING', _dueAmount > 0 ? _dueAmount : 0.0, const Color(0xFFFFB74D)),
                           ],
                         ),
                       )
@@ -3238,7 +3240,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                 padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFF34A853).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFF34A853).withOpacity(0.15), width: 1.5),
                     ),
                 child: Row(
@@ -3270,12 +3272,12 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               const SizedBox(height: 8),
               InkWell(
                 onTap: () => _selectCreditDueDate(context),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   decoration: BoxDecoration(
                     color: kOrange.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: kOrange.withOpacity(0.15), width: 1.5),
                   ),
                   child: Row(
@@ -3322,7 +3324,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
             duration: const Duration(milliseconds: 300),
             height: 60,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               color: canPay ? kPrimaryColor : kGrey200,
               boxShadow: canPay ? [BoxShadow(color: kPrimaryColor.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))] : [],
             ),
@@ -3331,7 +3333,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -3360,7 +3362,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text('Credit Due Date', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: kBlack87)),
           content: Column(
             mainAxisSize: MainAxisSize.min,

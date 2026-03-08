@@ -595,7 +595,7 @@ class _ProductsPageState extends State<ProductsPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           backgroundColor: kWhite,
           title: Text(name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)),
           content: Column(
@@ -685,7 +685,7 @@ class _ProductsPageState extends State<ProductsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Delete Product?', style: TextStyle(color: kBlack87, fontWeight: FontWeight.w800, fontSize: 18)),
         content: Text('Are you sure you want to delete "${data['itemName']}"? This action is permanent.', style: const TextStyle(color: kBlack54, fontSize: 14)),
         actions: [
@@ -708,7 +708,7 @@ class _ProductsPageState extends State<ProductsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Delete Multiple Products?', style: TextStyle(color: kBlack87, fontWeight: FontWeight.w800, fontSize: 18)),
         content: Text('Are you sure you want to delete ${_selectedProductIds.length} products? This action is permanent and cannot be undone.', style: const TextStyle(color: kBlack54, fontSize: 14)),
         actions: [
