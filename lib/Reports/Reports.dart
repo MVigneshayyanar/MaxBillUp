@@ -2312,6 +2312,7 @@ class _DayBookPageState extends State<DayBookPage> {
           _firestoreService.getCollectionStream('stockPurchases'),
           _firestoreService.getCollectionStream('credits'),
           _firestoreService.getCollectionStream('purchaseCreditNotes'),
+          _firestoreService.getCollectionStream('purchasePayments'),
         ]),
         builder: (context, streamsSnapshot) {
           if (!streamsSnapshot.hasData) {
@@ -2332,7 +2333,10 @@ class _DayBookPageState extends State<DayBookPage> {
                           return StreamBuilder<QuerySnapshot>(
                             stream: streamsSnapshot.data![4],
                             builder: (context, purchaseCreditsSnapshot) {
-                              if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData || !creditsSnapshot.hasData || !purchaseCreditsSnapshot.hasData) {
+                              return StreamBuilder<QuerySnapshot>(
+                                stream: streamsSnapshot.data![5],
+                                builder: (context, purchasePaymentsSnapshot) {
+                              if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData || !creditsSnapshot.hasData || !purchaseCreditsSnapshot.hasData || !purchasePaymentsSnapshot.hasData) {
                                 return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                               }
 
@@ -2376,6 +2380,16 @@ class _DayBookPageState extends State<DayBookPage> {
 
                               // Filter purchase credits for selected date
                               final filteredPurchaseCredits = purchaseCreditsSnapshot.data!.docs.where((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                if (dt == null) return false;
+                                return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
+                              }).toList();
+
+                              // Filter purchase credit settlements (from Credit Tracker) for selected date
+                              final filteredPurchasePayments = purchasePaymentsSnapshot.data!.docs.where((doc) {
                                 final data = doc.data() as Map<String, dynamic>;
                                 DateTime? dt;
                                 if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
@@ -2578,6 +2592,35 @@ class _DayBookPageState extends State<DayBookPage> {
                                 }
                               }
 
+                              // Process Purchase Credit Settlements (from Credit Tracker "Settle" action)
+                              for (var doc in filteredPurchasePayments) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                                final mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
+
+                                if (seenTxnIds.contains(doc.id)) continue;
+                                seenTxnIds.add(doc.id);
+
+                                purchaseCreditPaid += amount;
+
+                                if (mode.contains('cash')) {
+                                  paymentOutCash += amount;
+                                } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+                                  paymentOutOnline += amount;
+                                }
+
+                                allTransactions.add({
+                                  'category': 'Purchase Credit Paid',
+                                  'particulars': data['creditNoteNumber']?.toString() ?? '--',
+                                  'name': data['supplierName']?.toString() ?? 'Supplier',
+                                  'total': amount,
+                                  'cashIn': 0.0,
+                                  'cashOut': amount,
+                                  'timestamp': data['timestamp'],
+                                  'paymentMode': mode,
+                                });
+                              }
+
                               // Process Expenses
                               for (var doc in filteredExpenses) {
                                 final data = doc.data() as Map<String, dynamic>;
@@ -2697,6 +2740,8 @@ class _DayBookPageState extends State<DayBookPage> {
                                   ),
                                 ],
                               );
+                                }, // purchasePaymentsSnapshot builder end
+                              );   // StreamBuilder purchasePayments end
                             },
                           );
                         },

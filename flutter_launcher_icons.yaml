@@ -9,5 +9,5 @@ flutter_launcher_icons:
   # adaptive_fg has the logo centered at 62% of a 1024x1024 canvas
   # with 18.9% transparent padding — fits the 66dp safe zone on ALL OEM masks
   # (circle, squircle, rounded square, teardrop, etc.)
-  adaptive_icon_foreground: "assets/MAX_my_bill_adaptive_fg.png"
-  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/MAX_my_bill_icon.png"
+  adaptive_icon_background: "assets/icon_bg_gradient.png"

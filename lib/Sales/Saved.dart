@@ -111,7 +111,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: kErrorColor.withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: kErrorColor.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 32),
             ),
             const SizedBox(height: 16),
@@ -150,13 +150,13 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
         future: FirestoreService().getCollectionStream('savedOrders'),
         builder: (context, streamSnapshot) {
           if (!streamSnapshot.hasData) {
-            return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+            return Center(child: CircularProgressIndicator(color: kPrimaryColor));
           }
           return StreamBuilder<QuerySnapshot>(
             stream: streamSnapshot.data,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                return Center(child: CircularProgressIndicator(color: kPrimaryColor));
               }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return _buildEmptyState(context.tr('no_saved_orders'));
@@ -198,7 +198,8 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
     final total = (data['total'] ?? 0.0).toDouble();
     final items = data['items'] as List<dynamic>? ?? [];
     final timestamp = data['timestamp'] as Timestamp?;
-    final date = timestamp != null ? DateFormat('dd MMM yyyy • hh:mm a').format(timestamp.toDate()) : '--';
+    final dateStr = timestamp != null ? DateFormat('dd MMM yyyy').format(timestamp.toDate()) : '--';
+    final timeStr = timestamp != null ? DateFormat('hh:mm a').format(timestamp.toDate()) : '';
 
     return Container(
       decoration: BoxDecoration(
@@ -212,64 +213,69 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
           borderRadius: BorderRadius.circular(12),
           onTap: () => _loadOrder(doc.id, data),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Row 1: draft label | date & time
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Saved draft',
-                        style: TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 10, letterSpacing: 0.5)),
-                    Text(date, style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w600)),
+                    Row(children: [
+                      const Icon(Icons.bookmark_rounded, size: 13, color: kPrimaryColor),
+                      const SizedBox(width: 5),
+                      const Text('SAVED DRAFT',
+                          style: TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 11, letterSpacing: 0.5)),
+                    ]),
+                    Text(timeStr.isNotEmpty ? '$dateStr • $timeStr' : dateStr,
+                        style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
+                // Row 2: customer name | total amount
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: kOrange.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.person_rounded, size: 18, color: kOrange),
-                    ),
-                    const SizedBox(width: 14),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(name,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 2),
-                          Text('${items.length} ${items.length == 1 ? 'item' : 'items'}',
-                              style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
+                      child: Text(name,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_forever_rounded, color: kErrorColor, size: 22),
-                      onPressed: () => _confirmDelete(doc.id, name),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      tooltip: 'Discard Draft',
-                    ),
+                    Text('$_currencySymbol${total.toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kGoogleGreen)),
                   ],
                 ),
-                const Divider(height: 24, color: kGrey100),
+                const Divider(height: 20, color: kGreyBg),
+                // Row 3: items count + draft badge | delete | chevron
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('ESTIMATED TOTAL', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        const SizedBox(height: 2),
-                        Text('$_currencySymbol${total.toStringAsFixed(2)}',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                        const Text('ITEMS', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                        Text('${items.length} ${items.length == 1 ? 'item' : 'items'}',
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
                       ],
                     ),
-                    _statusBadge(),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Material(
+                          color: kErrorColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () => _confirmDelete(doc.id, name),
+                            child: const Padding(
+                              padding: EdgeInsets.all(6),
+                              child: Icon(Icons.delete_forever_rounded, color: kErrorColor, size: 16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.chevron_right_rounded, color: kPrimaryColor, size: 18),
+                      ],
+                    ),
                   ],
                 ),
               ],
@@ -280,22 +286,4 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
     );
   }
 
-  Widget _statusBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-          color: kPrimaryColor.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: kPrimaryColor.withOpacity(0.15))
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.pending_actions_rounded, size: 12, color: kGoogleGreen),
-          const SizedBox(width: 6),
-          const Text('DRAFT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
-        ],
-      ),
-    );
-  }
 }

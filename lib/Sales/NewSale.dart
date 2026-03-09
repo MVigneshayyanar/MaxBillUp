@@ -741,8 +741,8 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     );
   }
 
-  void _handleClearCart() async {
-    final bool? confirm = await showDialog<bool>(
+  void _handleClearCart() {
+    showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -751,7 +751,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Keep Items', style: TextStyle(color: Colors.grey[600],fontWeight: FontWeight.bold)),
+            child: Text('Keep Items', style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -759,42 +759,30 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Clear Total Cart', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
+            child: const Text('Clear Total Cart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
-    );
-
-    if (confirm == true) {
-      // Clear CartService for persistence
-      context.read<CartService>().clearCart();
-
-      setState(() {
-        _sharedCartItems = null;
-        _loadedSavedOrderId = null;
-        _savedOrderName = null; // Clear saved order name when cart is cleared
-        _cartVersion++;
-        _highlightedProductId = null;
-        // Reset search focus when cart is cleared to show AppBar and categories
-        _isSearchFocused = false;
-        // Clear customer info
-        _selectedCustomerPhone = null;
-        _selectedCustomerName = null;
-        _selectedCustomerGST = null;
-      });
-      _updateCartItems([]);
-
-      // Unfocus search field in child pages after dialog closes
-      if (mounted) {
-        // Use post frame callback to ensure dialog is closed first
+    ).then((confirm) {
+      if (confirm == true && mounted) {
+        context.read<CartService>().clearCart();
+        setState(() {
+          _sharedCartItems = null;
+          _loadedSavedOrderId = null;
+          _savedOrderName = null;
+          _cartVersion++;
+          _highlightedProductId = null;
+          _isSearchFocused = false;
+          _selectedCustomerPhone = null;
+          _selectedCustomerName = null;
+          _selectedCustomerGST = null;
+        });
+        _updateCartItems([]);
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            // Clear all focus in the entire focus tree
-            FocusManager.instance.primaryFocus?.unfocus();
-          }
+          if (mounted) FocusManager.instance.primaryFocus?.unfocus();
         });
       }
-    }
+    });
   }
 
   Widget _dialogLabel(String text) => Padding(
@@ -1058,48 +1046,51 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                       final item = _sharedCartItems![idx];
                       final bool isHighlighted = item.productId == _highlightedProductId;
 
-                      return GestureDetector(
-                        onTap: () => _showEditCartItemDialog(idx),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 400),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: isSearchFocused ? 4 : 8, // Reduced padding in search mode
-                          ),
-                          decoration: BoxDecoration(
-                            // Use animated color for smooth transition
-                            color: isHighlighted ? _highlightAnimation!.value : Colors.transparent,
-                            borderRadius: BorderRadius.circular(0),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 4,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(item.name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 13)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                    ),
-                                    SizedBox(width: R.sp(context, 4)),
-                                    HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: R.sp(context, 16)),
-                                  ],
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _showEditCartItemDialog(idx),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 400),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: isSearchFocused ? 4 : 8, // Reduced padding in search mode
+                            ),
+                            decoration: BoxDecoration(
+                              // Use animated color for smooth transition
+                              color: isHighlighted ? _highlightAnimation!.value : Colors.transparent,
+                              borderRadius: BorderRadius.circular(0),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 4,
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(item.name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 13)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      ),
+                                      SizedBox(width: R.sp(context, 4)),
+                                      HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: R.sp(context, 16)),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              Expanded(flex: 2, child: Text(
-                                item.quantity % 1 == 0 ? '${item.quantity.toInt()}' : '${item.quantity.toStringAsFixed(item.quantity < 1 ? 3 : 2).replaceAll(RegExp(r'\.?0+$'), '')}',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 13))
-                              )),
-                              Expanded(flex: 2, child: Text(AmountFormatter.formatWithSymbol(item.priceWithTax), textAlign: TextAlign.center, style: TextStyle(fontSize: R.sp(context, 12)))),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  AmountFormatter.formatWithSymbol(item.totalWithTax),
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w600, fontSize: R.sp(context, 13)),
+                                Expanded(flex: 2, child: Text(
+                                  item.quantity % 1 == 0 ? '${item.quantity.toInt()}' : '${item.quantity.toStringAsFixed(item.quantity < 1 ? 3 : 2).replaceAll(RegExp(r'\.?0+$'), '')}',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 13))
+                                )),
+                                Expanded(flex: 2, child: Text(AmountFormatter.formatWithSymbol(item.priceWithTax), textAlign: TextAlign.center, style: TextStyle(fontSize: R.sp(context, 12)))),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    AmountFormatter.formatWithSymbol(item.totalWithTax),
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w600, fontSize: R.sp(context, 13)),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -1121,14 +1112,22 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  GestureDetector(
-                    onTap: _handleClearCart,
-                    child: Row(
-                      children: [
-                        HeroIcon(HeroIcons.trash, color: Colors.redAccent, size: R.sp(context, 18)),
-                        SizedBox(width: R.sp(context, 4)),
-                        Text('Clear', style: TextStyle(color: Colors.redAccent.withOpacity(0.8), fontWeight: FontWeight.w800, fontSize: R.sp(context, 13))),
-                      ],
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: _handleClearCart,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            HeroIcon(HeroIcons.trash, color: Colors.redAccent, size: R.sp(context, 18)),
+                            SizedBox(width: R.sp(context, 4)),
+                            Text('Clear', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w800, fontSize: R.sp(context, 13))),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   HeroIcon(HeroIcons.bars3, color: Colors.grey, size: R.sp(context, 24)),

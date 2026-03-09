@@ -635,18 +635,22 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
   final List<Map<String, String>> _currencies = [
     // Popular currencies first
+    {'code': 'INR', 'symbol': '₹', 'name': 'Indian Rupee'},
     {'code': 'USD', 'symbol': '\$', 'name': 'US Dollar'},
     {'code': 'EUR', 'symbol': '€', 'name': 'Euro'},
     {'code': 'GBP', 'symbol': '£', 'name': 'British Pound'},
-    {'code': 'INR', 'symbol': '₹', 'name': 'Indian Rupee'},
     {'code': 'CNY', 'symbol': '¥', 'name': 'Chinese Yuan'},
     {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese Yen'},
+    {'code': 'AUD', 'symbol': 'A\$', 'name': 'Australian Dollar'},
+    {'code': 'CAD', 'symbol': 'C\$', 'name': 'Canadian Dollar'},
+    {'code': 'CHF', 'symbol': 'CHF', 'name': 'Swiss Franc'},
+    {'code': 'SGD', 'symbol': 'S\$', 'name': 'Singapore Dollar'},
+    {'code': 'AED', 'symbol': 'د.إ', 'name': 'UAE Dirham'},
+    {'code': 'SAR', 'symbol': '﷼', 'name': 'Saudi Riyal'},
 
     // Asia-Pacific
-    {'code': 'AED', 'symbol': 'د.إ', 'name': 'UAE Dirham'},
     {'code': 'AFN', 'symbol': '؋', 'name': 'Afghan Afghani'},
     {'code': 'AMD', 'symbol': '֏', 'name': 'Armenian Dram'},
-    {'code': 'AUD', 'symbol': 'A\$', 'name': 'Australian Dollar'},
     {'code': 'AZN', 'symbol': '₼', 'name': 'Azerbaijani Manat'},
     {'code': 'BDT', 'symbol': '৳', 'name': 'Bangladeshi Taka'},
     {'code': 'BHD', 'symbol': '.د.ب', 'name': 'Bahraini Dinar'},
@@ -664,6 +668,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     {'code': 'KRW', 'symbol': '₩', 'name': 'South Korean Won'},
     {'code': 'KWD', 'symbol': 'د.ك', 'name': 'Kuwaiti Dinar'},
     {'code': 'KZT', 'symbol': '₸', 'name': 'Kazakhstani Tenge'},
+    {'code': 'KGS', 'symbol': 'с', 'name': 'Kyrgyzstani Som'},
     {'code': 'LAK', 'symbol': '₭', 'name': 'Lao Kip'},
     {'code': 'LBP', 'symbol': 'ل.ل', 'name': 'Lebanese Pound'},
     {'code': 'LKR', 'symbol': 'Rs', 'name': 'Sri Lankan Rupee'},
@@ -675,19 +680,22 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     {'code': 'NPR', 'symbol': 'Rs', 'name': 'Nepalese Rupee'},
     {'code': 'NZD', 'symbol': 'NZ\$', 'name': 'New Zealand Dollar'},
     {'code': 'OMR', 'symbol': 'ر.ع.', 'name': 'Omani Rial'},
+    {'code': 'PGK', 'symbol': 'K', 'name': 'Papua New Guinean Kina'},
     {'code': 'PHP', 'symbol': '₱', 'name': 'Philippine Peso'},
     {'code': 'PKR', 'symbol': 'Rs', 'name': 'Pakistani Rupee'},
     {'code': 'QAR', 'symbol': 'ر.ق', 'name': 'Qatari Riyal'},
-    {'code': 'SAR', 'symbol': '﷼', 'name': 'Saudi Riyal'},
-    {'code': 'SGD', 'symbol': 'S\$', 'name': 'Singapore Dollar'},
+    {'code': 'SBD', 'symbol': 'SI\$', 'name': 'Solomon Islands Dollar'},
     {'code': 'SYP', 'symbol': '£S', 'name': 'Syrian Pound'},
     {'code': 'THB', 'symbol': '฿', 'name': 'Thai Baht'},
-    {'code': 'TJS', 'symbol': 'ЅМ', 'name': 'Tajikistani Somoni'},
-    {'code': 'TMT', 'symbol': 'm', 'name': 'Turkmenistani Manat'},
+    {'code': 'TJS', 'symbol': 'SM', 'name': 'Tajikistani Somoni'},
+    {'code': 'TMT', 'symbol': 'T', 'name': 'Turkmenistani Manat'},
+    {'code': 'TOP', 'symbol': 'T\$', 'name': 'Tongan Paʻanga'},
     {'code': 'TRY', 'symbol': '₺', 'name': 'Turkish Lira'},
     {'code': 'TWD', 'symbol': 'NT\$', 'name': 'New Taiwan Dollar'},
     {'code': 'UZS', 'symbol': 'so\'m', 'name': 'Uzbekistani Som'},
     {'code': 'VND', 'symbol': '₫', 'name': 'Vietnamese Dong'},
+    {'code': 'VUV', 'symbol': 'VT', 'name': 'Vanuatu Vatu'},
+    {'code': 'WST', 'symbol': 'WS\$', 'name': 'Samoan Tālā'},
     {'code': 'YER', 'symbol': '﷼', 'name': 'Yemeni Rial'},
 
     // Americas
@@ -699,7 +707,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     {'code': 'BRL', 'symbol': 'R\$', 'name': 'Brazilian Real'},
     {'code': 'BSD', 'symbol': 'B\$', 'name': 'Bahamian Dollar'},
     {'code': 'BZD', 'symbol': 'BZ\$', 'name': 'Belize Dollar'},
-    {'code': 'CAD', 'symbol': 'C\$', 'name': 'Canadian Dollar'},
     {'code': 'CLP', 'symbol': '\$', 'name': 'Chilean Peso'},
     {'code': 'COP', 'symbol': '\$', 'name': 'Colombian Peso'},
     {'code': 'CRC', 'symbol': '₡', 'name': 'Costa Rican Colón'},
@@ -727,9 +734,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     {'code': 'BAM', 'symbol': 'KM', 'name': 'Bosnia and Herzegovina Mark'},
     {'code': 'BGN', 'symbol': 'лв', 'name': 'Bulgarian Lev'},
     {'code': 'BYN', 'symbol': 'Br', 'name': 'Belarusian Ruble'},
-    {'code': 'CHF', 'symbol': 'CHF', 'name': 'Swiss Franc'},
     {'code': 'CZK', 'symbol': 'Kč', 'name': 'Czech Koruna'},
     {'code': 'DKK', 'symbol': 'kr', 'name': 'Danish Krone'},
+    {'code': 'GEL', 'symbol': '₾', 'name': 'Georgian Lari'},
     {'code': 'GIP', 'symbol': '£', 'name': 'Gibraltar Pound'},
     {'code': 'HRK', 'symbol': 'kn', 'name': 'Croatian Kuna'},
     {'code': 'HUF', 'symbol': 'Ft', 'name': 'Hungarian Forint'},
@@ -746,8 +753,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
     // Africa
     {'code': 'AOA', 'symbol': 'Kz', 'name': 'Angolan Kwanza'},
+    {'code': 'BIF', 'symbol': 'Fr', 'name': 'Burundian Franc'},
     {'code': 'BWP', 'symbol': 'P', 'name': 'Botswana Pula'},
     {'code': 'CDF', 'symbol': 'FC', 'name': 'Congolese Franc'},
+    {'code': 'CVE', 'symbol': '\$', 'name': 'Cape Verdean Escudo'},
     {'code': 'DJF', 'symbol': 'Fdj', 'name': 'Djiboutian Franc'},
     {'code': 'DZD', 'symbol': 'د.ج', 'name': 'Algerian Dinar'},
     {'code': 'EGP', 'symbol': '£', 'name': 'Egyptian Pound'},
@@ -757,6 +766,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     {'code': 'GMD', 'symbol': 'D', 'name': 'Gambian Dalasi'},
     {'code': 'GNF', 'symbol': 'FG', 'name': 'Guinean Franc'},
     {'code': 'KES', 'symbol': 'KSh', 'name': 'Kenyan Shilling'},
+    {'code': 'KMF', 'symbol': 'CF', 'name': 'Comorian Franc'},
     {'code': 'LRD', 'symbol': 'L\$', 'name': 'Liberian Dollar'},
     {'code': 'LSL', 'symbol': 'L', 'name': 'Lesotho Loti'},
     {'code': 'LYD', 'symbol': 'ل.د', 'name': 'Libyan Dinar'},
@@ -774,6 +784,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     {'code': 'SLL', 'symbol': 'Le', 'name': 'Sierra Leonean Leone'},
     {'code': 'SOS', 'symbol': 'Sh', 'name': 'Somali Shilling'},
     {'code': 'SSP', 'symbol': '£', 'name': 'South Sudanese Pound'},
+    {'code': 'STN', 'symbol': 'Db', 'name': 'São Tomé and Príncipe Dobra'},
     {'code': 'SZL', 'symbol': 'L', 'name': 'Swazi Lilangeni'},
     {'code': 'TND', 'symbol': 'د.ت', 'name': 'Tunisian Dinar'},
     {'code': 'TZS', 'symbol': 'TSh', 'name': 'Tanzanian Shilling'},
@@ -1664,67 +1675,169 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   }
 
   Widget _buildCurrencyField() {
-    final selectedCurrencyData = _currencies.firstWhere((c) => c['code'] == _selectedCurrency, orElse: () => _currencies[3]);
-    return GestureDetector(
-      onTap: _showCurrencyPicker,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: kWhite,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: kBlack54),
-        ),
-        child: ListTile(
-          leading: const Icon(Icons.currency_exchange_rounded, color: kPrimaryColor, size: 20),
-          title: const Text("Currency", style: TextStyle(color: kPrimaryColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans')),
-          subtitle: Text("${selectedCurrencyData['symbol']} ${selectedCurrencyData['name']}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato')),
-          trailing: const Icon(Icons.keyboard_arrow_down_rounded, color: kBlack54, size: 24),
+    final sel = _currencies.firstWhere((c) => c['code'] == _selectedCurrency, orElse: () => _currencies[3]);
+    final hasValue = _selectedCurrency.isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: _showCurrencyPicker,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1.0),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.currency_exchange_rounded, color: kPrimaryColor, size: 20),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Business Currency",
+                      style: TextStyle(fontSize: 9, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5, fontFamily: 'NotoSans'),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${sel['symbol']} ${sel['code']} - ${sel['name']}",
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87, fontFamily: 'Lato'),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.keyboard_arrow_down_rounded, color: kBlack54, size: 22),
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _showCurrencyPicker() {
+    String searchQuery = '';
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: kWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Container(
-        height: 400,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: kGrey300, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 16),
-            const Text("Select Currency", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, fontFamily: 'NotoSans')),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _currencies.length,
-                itemBuilder: (context, index) {
-                  final currency = _currencies[index];
-                  final isSelected = _selectedCurrency == currency['code'];
-                  return ListTile(
-                    leading: Container(
-                      width: 40, height: 40,
-                      decoration: BoxDecoration(color: isSelected ? kPrimaryColor.withAlpha(25) : kGreyBg, borderRadius: BorderRadius.circular(10)),
-                      child: Center(child: Text(currency['symbol']!, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isSelected ? kPrimaryColor : kBlack54))),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filteredCurrencies = _currencies.where((currency) {
+              if (searchQuery.isEmpty) return true;
+              final query = searchQuery.toLowerCase();
+              return currency['code']!.toLowerCase().contains(query) ||
+                  currency['name']!.toLowerCase().contains(query) ||
+                  currency['symbol']!.toLowerCase().contains(query);
+            }).toList();
+
+            return SizedBox(
+              height: MediaQuery.of(context).size.height * 0.75,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const Text("Select Currency",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5, fontFamily: 'NotoSans')),
+                    const SizedBox(height: 20),
+                    TextField(
+                      autofocus: false,
+                      decoration: InputDecoration(
+                        hintText: 'Search currency...',
+                        hintStyle: const TextStyle(fontSize: 13, color: kGrey400),
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
+                        ),
+                        filled: true,
+                        fillColor: kGreyBg,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onChanged: (value) => setModalState(() => searchQuery = value),
                     ),
-                    title: Text(currency['name']!, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'Lato')),
-                    subtitle: Text(currency['code']!, style: const TextStyle(color: kBlack54, fontSize: 12)),
-                    trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor) : null,
-                    onTap: () {
-                      setState(() => _selectedCurrency = currency['code']!);
-                      _checkForChanges();
-                      Navigator.pop(context);
-                    },
-                  );
-                },
+                    const SizedBox(height: 16),
+                    if (searchQuery.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${filteredCurrencies.length} ${filteredCurrencies.length == 1 ? 'currency' : 'currencies'} found',
+                            style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: filteredCurrencies.isEmpty
+                          ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  HeroIcon(HeroIcons.magnifyingGlass, size: 48, color: kGrey400),
+                                  SizedBox(height: 12),
+                                  Text('No currencies found', style: TextStyle(color: kGrey400, fontSize: 14)),
+                                ],
+                              ),
+                            )
+                          : ListView.separated(
+                              itemCount: filteredCurrencies.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
+                              itemBuilder: (context, i) {
+                                final c = filteredCurrencies[i];
+                                final isSelected = c['code'] == _selectedCurrency;
+                                return ListTile(
+                                  onTap: () {
+                                    setState(() => _selectedCurrency = c['code']!);
+                                    _checkForChanges();
+                                    Navigator.pop(ctx);
+                                  },
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Container(
+                                    width: 40, height: 40,
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? kPrimaryColor.withAlpha(25) : kGreyBg,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Center(
+                                      child: Text(c['symbol']!,
+                                          style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected ? kPrimaryColor : kBlack54)),
+                                    ),
+                                  ),
+                                  title: Text(c['name']!,
+                                      style: TextStyle(
+                                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                          fontSize: 14,
+                                          color: isSelected ? kPrimaryColor : kBlack87,
+                                          fontFamily: 'Lato')),
+                                  subtitle: Text(c['code']!,
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: isSelected ? kPrimaryColor : kBlack54,
+                                          fontWeight: FontWeight.w500)),
+                                  trailing: isSelected
+                                      ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 24)
+                                      : null,
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -2919,7 +3032,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
               ),
               title: Row(
                 children: [
-                  const Text('App Theme', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans', color: kGrey400)),
+                  const Text('App Theme', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans', color: kBlack87)),
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -2928,7 +3041,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
                   ),
                 ],
               ),
-              subtitle: const Text('Light, Dark, Modern', style: TextStyle(fontSize: 12, color: kGrey400, fontFamily: 'Lato')),
+              subtitle: const Text('Light, Dark, Modern', style: TextStyle(fontSize: 12, color: kBlack54, fontFamily: 'Lato')),
               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey300),
               onTap: null,
             ),
@@ -4114,7 +4227,7 @@ class _LanguagePageState extends State<LanguagePage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
-                          child: Text(lang['code']!.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: isComingSoon ? kGrey400 : (isSelected ? kPrimaryColor : kBlack54))),
+                          child: Text(lang['code']!.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: isComingSoon ? kBlack54 : (isSelected ? kPrimaryColor : kBlack54))),
                         ),
                       ),
                       title: Row(
@@ -4125,7 +4238,7 @@ class _LanguagePageState extends State<LanguagePage> {
                               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                               fontSize: 14,
                               fontFamily: 'NotoSans',
-                              color: isComingSoon ? kGrey400 : (isSelected ? kPrimaryColor : kBlack87),
+                              color: isComingSoon ? kBlack54 : (isSelected ? kPrimaryColor : kBlack87),
                             ),
                           ),
                           if (isComingSoon) ...[
@@ -4138,7 +4251,7 @@ class _LanguagePageState extends State<LanguagePage> {
                           ],
                         ],
                       ),
-                      subtitle: Text(lang['nativeName']!, style: TextStyle(fontSize: 12, color: isComingSoon ? kGrey400 : (isSelected ? kPrimaryColor : kBlack54), fontFamily: 'Lato')),
+                      subtitle: Text(lang['nativeName']!, style: TextStyle(fontSize: 12, color: isComingSoon ? kBlack54 : (isSelected ? kPrimaryColor : kBlack54), fontFamily: 'Lato')),
                       trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 22) : null,
                     ),
                     if (index < _languages.length - 1) const Divider(height: 1, indent: 60, color: kGrey100),

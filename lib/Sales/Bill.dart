@@ -2204,6 +2204,7 @@ class _PaymentPageState extends State<PaymentPage> {
   final TextEditingController _displayController = TextEditingController(text: '0.0');
   double get _change => _cashReceived - widget.totalAmount;
   DateTime? _creditDueDate;
+  bool _isProcessing = false;
 
   String _currencySymbol = 'Rs '; // Default currency
 
@@ -2245,8 +2246,11 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   Future<void> _completeSale() async {
+    if (_isProcessing) return;
     if (widget.paymentMode == 'Credit' && widget.customerPhone == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Customer required for Credit'))); return; }
     if (widget.paymentMode != 'Credit' && _cashReceived < widget.totalAmount - 0.01) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment insufficient'), backgroundColor: Colors.red)); return; }
+
+    setState(() => _isProcessing = true);
 
     // Generate invoice number with prefix
     String invoiceNumber;
@@ -2617,13 +2621,18 @@ class _PaymentPageState extends State<PaymentPage> {
                         boxShadow: canPay ? [BoxShadow(color: primaryThemeColor.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))] : [],
                       ),
                       child: ElevatedButton(
-                        onPressed: canPay ? _completeSale : null,
+                        onPressed: (canPay && !_isProcessing) ? _completeSale : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: Row(
+                        child: _isProcessing
+                            ? const SizedBox(
+                                width: 26, height: 26,
+                                child: CircularProgressIndicator(color: kWhite, strokeWidth: 2.5),
+                              )
+                            : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(canPay ? (widget.unsettledSaleId != null ? 'UPDATE' : 'CONFIRM PAYMENT') : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
@@ -2854,6 +2863,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   double get _dueAmount => widget.totalAmount - _totalPaid;
   DateTime? _creditDueDate;
   String _currencySymbol = 'Rs '; // Default currency
+  bool _isProcessing = false;
 
   // Treat as edit mode when either unsettledSaleId is provided OR an existingInvoiceNumber is provided
   bool get isEditMode => widget.unsettledSaleId != null || (widget.existingInvoiceNumber != null && widget.existingInvoiceNumber!.isNotEmpty);
@@ -2922,6 +2932,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   }
 
       Future<void> _processSplitSale() async {
+        if (_isProcessing) return;
         // Calculate change - overpayment
         final paidAmount = _cashAmount + _onlineAmount;
         final changeAmount = paidAmount > widget.totalAmount && _creditAmount == 0 ? paidAmount - widget.totalAmount : 0.0;
@@ -2937,7 +2948,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         }
 
         try {
-          showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+          setState(() => _isProcessing = true);
 
           // Generate invoice number with prefix
           String invoiceNumber;
@@ -3329,13 +3340,18 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               boxShadow: canPay ? [BoxShadow(color: kPrimaryColor.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))] : [],
             ),
             child: ElevatedButton(
-              onPressed: canPay ? _processSplitSale : null,
+              onPressed: (canPay && !_isProcessing) ? _processSplitSale : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: Row(
+              child: _isProcessing
+                  ? const SizedBox(
+                      width: 26, height: 26,
+                      child: CircularProgressIndicator(color: kWhite, strokeWidth: 2.5),
+                    )
+                  : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(canPay ? (isEditMode ? 'UPDATE' : 'CONFIRM PAYMENT') : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),

@@ -28,7 +28,6 @@ class CategoryPage extends StatefulWidget {
 class _CategoryPageState extends State<CategoryPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String _sortBy = 'name';
   bool _sortAscending = true;
   String _filterType = 'all'; // all, empty, nonEmpty
   String _currencySymbol = '';
@@ -40,6 +39,10 @@ class _CategoryPageState extends State<CategoryPage> {
   String _role = 'staff';
   CollectionReference? _productsRef;
   Stream<QuerySnapshot>? _categoryStream;
+  Stream<QuerySnapshot>? _productsStream;
+
+  // In-memory count map: categoryName -> count (updated live from products stream)
+  Map<String, int> _productCountMap = {};
 
   // Helper function to format category names: First letter uppercase, rest lowercase
   String _formatCategoryName(String name) {
@@ -60,8 +63,7 @@ class _CategoryPageState extends State<CategoryPage> {
     });
 
     _loadPermissions();
-    _initCategoryStream();
-    _initProductCollection();
+    _initStreams();
     _loadCurrency();
   }
 
@@ -77,31 +79,29 @@ class _CategoryPageState extends State<CategoryPage> {
     }
   }
 
-  /// FAST FETCH: Initialize the stream once in initState to hit the
-  /// Firestore local cache immediately for a 0ms perceived load.
-  Future<void> _initCategoryStream() async {
+  /// Initialize both streams together for fast local-cache hit
+  Future<void> _initStreams() async {
     try {
-      final stream = await FirestoreService().getCollectionStream('categories');
-      if (mounted) {
-        setState(() {
-          _categoryStream = stream;
-        });
-      }
-    } catch (e) {
-      debugPrint("Fast Fetch Error: $e");
-    }
-  }
-
-  Future<void> _initProductCollection() async {
-    try {
+      final catStream = await FirestoreService().getCollectionStream('categories');
       final ref = await FirestoreService().getStoreCollection('Products');
-      if (mounted) {
-        setState(() {
-          _productsRef = ref;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _categoryStream = catStream;
+        _productsRef = ref;
+        _productsStream = ref.snapshots();
+      });
+      // Listen to products stream to keep count map updated live
+      _productsStream!.listen((snapshot) {
+        if (!mounted) return;
+        final newMap = <String, int>{};
+        for (final doc in snapshot.docs) {
+          final cat = ((doc.data() as Map<String, dynamic>)['category'] ?? '').toString();
+          if (cat.isNotEmpty) newMap[cat] = (newMap[cat] ?? 0) + 1;
+        }
+        setState(() => _productCountMap = newMap);
+      });
     } catch (e) {
-      debugPrint("Error initializing product collection: $e");
+      debugPrint("Stream init error: $e");
     }
   }
 
@@ -238,8 +238,7 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   Widget _buildCategoryList() {
-    // FAST FETCH: Check if stream is already initialized
-    if (_categoryStream == null || _productsRef == null) {
+    if (_categoryStream == null || _productsStream == null) {
       return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
     }
 
@@ -285,22 +284,19 @@ class _CategoryPageState extends State<CategoryPage> {
     final data = categoryDoc.data() as Map<String, dynamic>;
     final name = data['name'] ?? 'Unknown';
 
-    return FutureBuilder<AggregateQuerySnapshot>(
-      future: _productsRef!.where('category', isEqualTo: name).count().get(),
-      builder: (context, countSnapshot) {
-        // Fix: Changed ternary to null-coalescing for robust null safety
-        final int count = countSnapshot.data?.count ?? 0;
+    // ✅ Instant in-memory count — no Firestore call per card
+    final int count = _productCountMap[name] ?? 0;
 
-        // Filter logic
-        if (_filterType == 'nonEmpty' && count == 0) return const SizedBox.shrink();
-        if (_filterType == 'empty' && count > 0) return const SizedBox.shrink();
+    // Filter logic
+    if (_filterType == 'nonEmpty' && count == 0) return const SizedBox.shrink();
+    if (_filterType == 'empty' && count > 0) return const SizedBox.shrink();
 
-        return Container(
-          decoration: BoxDecoration(
-            color: kWhite,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kGrey200),
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
+      ),
           child: Column(
             children: [
               ListTile(
@@ -400,8 +396,6 @@ class _CategoryPageState extends State<CategoryPage> {
             ],
           ),
         );
-      },
-    );
   }
 
   // ==========================================
@@ -533,27 +527,6 @@ class _CategoryPageState extends State<CategoryPage> {
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: (isAdmin || _hasPermission('category')) ? () => _showAddCategoryDialog(context) : null,
-              icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 24),
-              label: const Text(
-                "Add Your First Category",
-                style: TextStyle(
-                  color: kWhite,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimaryColor,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 2,
-              ),
-            ),
           ],
         ),
       ),
@@ -639,14 +612,34 @@ class _CategoryPageState extends State<CategoryPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: kWhite,
         title: Text(context.tr('delete_category'), style: const TextStyle(fontWeight: FontWeight.w800)),
-        content: Text('${context.tr('are_you_sure_delete')} "$name"?', style: const TextStyle(color: kBlack54, fontSize: 14)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${context.tr('are_you_sure_delete')} "$name"?', style: const TextStyle(color: kBlack54, fontSize: 14)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: kOrange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              child: Row(
+                children: [
+                  const HeroIcon(HeroIcons.informationCircle, color: kOrange, size: 16),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text('Products in this category will be moved to Uncategorized.', style: TextStyle(color: kOrange, fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c), child: Text(context.tr('cancel'), style: const TextStyle(fontWeight: FontWeight.bold))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
             onPressed: () async {
-              await FirestoreService().deleteDocument('categories', id);
               Navigator.pop(c);
+              await _deleteCategoryAndUpdateProducts(id, name);
             },
             child: Text(context.tr('delete').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
           ),
@@ -655,60 +648,28 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 
+  Future<void> _deleteCategoryAndUpdateProducts(String categoryId, String categoryName) async {
+    try {
+      // Update all products in this category to 'Uncategorized'
+      if (_productsRef != null) {
+        final productsInCategory = await _productsRef!.where('category', isEqualTo: categoryName).get();
+        final batch = FirebaseFirestore.instance.batch();
+        for (final doc in productsInCategory.docs) {
+          batch.update(doc.reference, {'category': 'Uncategorized'});
+        }
+        if (productsInCategory.docs.isNotEmpty) await batch.commit();
+      }
+      // Delete the category
+      await FirestoreService().deleteDocument('categories', categoryId);
+    } catch (e) {
+      debugPrint('Error deleting category: $e');
+    }
+  }
+
   void _showAddExistingProductDialog(BuildContext context, String categoryName) {
     showDialog(
       context: context,
-      builder: (c) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: kWhite,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          constraints: const BoxConstraints(maxHeight: 500),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(context.tr('add_existing_product'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
-              const SizedBox(height: 16),
-              Expanded(
-                child: FutureBuilder<Stream<QuerySnapshot>>(
-                  future: FirestoreService().getCollectionStream('Products'),
-                  builder: (context, streamSnapshot) {
-                    if (!streamSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: streamSnapshot.data,
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                        final products = snapshot.data!.docs.where((doc) => (doc.data() as Map)['category'] != categoryName).toList();
-                        if (products.isEmpty) return const Center(child: Text("No products available"));
-                        return ListView.separated(
-                          itemCount: products.length,
-                          separatorBuilder: (c, i) => const Divider(height: 1, color: kGrey100),
-                          itemBuilder: (c, i) {
-                            final data = products[i].data() as Map<String, dynamic>;
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(data['itemName'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              subtitle: Text('Current: ${data['category'] ?? 'Uncategorized'}', style: const TextStyle(fontSize: 11, color: kBlack54)),
-                              trailing: ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
-                                onPressed: () async {
-                                  await FirestoreService().updateDocument('Products', products[i].id, {'category': categoryName});
-                                  Navigator.pop(context);
-                                },
-                                child: Text(context.tr('add').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 10, color: kWhite)),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      builder: (c) => _AddExistingProductDialog(categoryName: categoryName),
     );
   }
 }
@@ -907,8 +868,45 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
             decoration: BoxDecoration(color: (stock > 0 ? kGoogleGreen : kErrorColor).withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
             child: Text("${stock.toInt()} IN STOCK", style: TextStyle(color: stock > 0 ? kGoogleGreen : kErrorColor, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 0.5)),
           ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const HeroIcon(HeroIcons.trash, size: 20, color: kErrorColor),
+            tooltip: 'Remove from category',
+            onPressed: () => _confirmRemoveFromCategory(doc.id, name),
+          ),
         ],
       ),
+    );
+  }
+
+  void _confirmRemoveFromCategory(String productId, String productName) {
+    showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Remove from Category', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        content: Text('Remove "$productName" from ${widget.categoryName}?\n\nThe product will not be deleted.', style: const TextStyle(color: kBlack54, fontSize: 14)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            onPressed: () async {
+              Navigator.pop(c);
+              await FirestoreService().updateDocument('Products', productId, {'category': ''});
+            },
+            child: const Text('REMOVE', style: TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ...existing code...
+
+  void _showAddExistingProductDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (c) => _AddExistingProductDialog(categoryName: widget.categoryName),
     );
   }
 
@@ -939,62 +937,178 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
       title: Text(title, style: TextStyle(fontWeight: FontWeight.w700, color: color, fontSize: 14)),
     );
   }
+}
 
-  void _showAddExistingProductDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (c) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: kWhite,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          constraints: const BoxConstraints(maxHeight: 500),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(context.tr('add_existing_product'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
-              const SizedBox(height: 16),
-              Expanded(
-                child: FutureBuilder<Stream<QuerySnapshot>>(
-                  future: FirestoreService().getCollectionStream('Products'),
-                  builder: (context, streamSnapshot) {
-                    if (!streamSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: streamSnapshot.data,
+// ==========================================
+// Shared: Fast Add Existing Product Dialog
+// ==========================================
+
+class _AddExistingProductDialog extends StatefulWidget {
+  final String categoryName;
+  const _AddExistingProductDialog({required this.categoryName});
+
+  @override
+  State<_AddExistingProductDialog> createState() => _AddExistingProductDialogState();
+}
+
+class _AddExistingProductDialogState extends State<_AddExistingProductDialog> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+  CollectionReference? _productsRef;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+    _searchCtrl.addListener(() {
+      setState(() => _searchQuery = _searchCtrl.text.toLowerCase());
+    });
+  }
+
+  Future<void> _init() async {
+    final ref = await FirestoreService().getStoreCollection('Products');
+    if (mounted) setState(() => _productsRef = ref);
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: kWhite,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+          maxWidth: 480,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                const HeroIcon(HeroIcons.plusCircle, color: kPrimaryColor, size: 22),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text('Add Existing Product', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kBlack87)),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: kBlack54, size: 20),
+                  onPressed: () => Navigator.pop(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text('Category: ${widget.categoryName}', style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 14),
+            // Search bar
+            TextField(
+              controller: _searchCtrl,
+              autofocus: false,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+              decoration: InputDecoration(
+                hintText: 'Search products...',
+                hintStyle: const TextStyle(color: kBlack54, fontSize: 13),
+                prefixIcon: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 18),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18, color: kBlack54),
+                        onPressed: () => _searchCtrl.clear(),
+                      )
+                    : null,
+                filled: true,
+                fillColor: kGreyBg,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kGrey200)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Product list
+            Expanded(
+              child: _productsRef == null
+                  ? const Center(child: CircularProgressIndicator(color: kPrimaryColor))
+                  : StreamBuilder<QuerySnapshot>(
+                      stream: _productsRef!.snapshots(),
                       builder: (context, snapshot) {
-                        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                        final products = snapshot.data!.docs.where((doc) => (doc.data() as Map)['category'] != widget.categoryName).toList();
-                        if (products.isEmpty) return const Center(child: Text("No products available"));
+                        if (!snapshot.hasData) {
+                          return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                        }
+                        final products = snapshot.data!.docs.where((doc) {
+                          final d = doc.data() as Map<String, dynamic>;
+                          if ((d['category'] ?? '') == widget.categoryName) return false;
+                          if (_searchQuery.isEmpty) return true;
+                          return (d['itemName'] ?? '').toString().toLowerCase().contains(_searchQuery);
+                        }).toList();
+
+                        if (products.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const HeroIcon(HeroIcons.magnifyingGlass, size: 48, color: kGrey300),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _searchQuery.isNotEmpty ? 'No products matching "$_searchQuery"' : 'No products available to add',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
                         return ListView.separated(
                           itemCount: products.length,
-                          separatorBuilder: (c, i) => const Divider(height: 1, color: kGrey100),
-                          itemBuilder: (c, i) {
-                            final data = products[i].data() as Map<String, dynamic>;
+                          separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
+                          itemBuilder: (ctx, i) {
+                            final d = products[i].data() as Map<String, dynamic>;
+                            final itemName = d['itemName'] ?? 'Unknown';
+                            final currentCat = d['category'] ?? '';
                             return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(data['itemName'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              leading: Container(
+                                width: 36, height: 36,
+                                decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.inventory_2_rounded, color: kPrimaryColor, size: 18),
+                              ),
+                              title: Text(itemName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87)),
+                              subtitle: currentCat.isNotEmpty
+                                  ? Text('In: $currentCat', style: const TextStyle(fontSize: 11, color: kBlack54))
+                                  : const Text('Uncategorized', style: TextStyle(fontSize: 11, color: kBlack54)),
                               trailing: ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: kPrimaryColor,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
                                 onPressed: () async {
                                   await FirestoreService().updateDocument('Products', products[i].id, {'category': widget.categoryName});
-                                  Navigator.pop(context);
+                                  if (context.mounted) Navigator.pop(context);
                                 },
-                                child: Text(context.tr('add').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 10, color: kWhite)),
+                                child: const Text('ADD', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kWhite, letterSpacing: 0.5)),
                               ),
                             );
                           },
                         );
                       },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+                    ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
-
 
