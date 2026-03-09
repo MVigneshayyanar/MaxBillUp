@@ -1338,6 +1338,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     final themeColor = a4Colors['primary']!;
     final currency = _currencySymbol;
     final dateStr = DateFormat('dd/MM/yyyy').format(widget.dateTime);
+    final timeStr = DateFormat('hh:mm a').format(widget.dateTime);
 
     // Scaled helpers
     double fs(double size) => size * scale;
@@ -1435,6 +1436,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                           SizedBox(height: sp(4)),
                           Text('#${widget.invoiceNumber}', style: TextStyle(fontSize: fs(12), fontWeight: FontWeight.w700, color: kBlack87)),
                           Text(dateStr, style: TextStyle(fontSize: fs(10), color: kBlack54)),
+                          Text(timeStr, style: TextStyle(fontSize: fs(10), color: kBlack54)),
                         ],
                       ),
                     ],
@@ -1458,10 +1460,10 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                         ),
                         child: Row(
                           children: [
-                            Text('Bill To: ', style: TextStyle(fontSize: fs(12), fontWeight: FontWeight.w700, color: themeColor)),
+                            Text('Customer: ', style: TextStyle(fontSize: fs(12), fontWeight: FontWeight.w700, color: themeColor)),
                             Expanded(child: Text(widget.customerName!, style: TextStyle(fontSize: fs(12), color: kBlack87), maxLines: 1, overflow: TextOverflow.ellipsis)),
                             if (widget.customerPhone != null)
-                              Text(' | ${widget.customerPhone}', style: TextStyle(fontSize: fs(11), color: kBlack54)),
+                              Text(' | Contact: ${widget.customerPhone}', style: TextStyle(fontSize: fs(11), color: kBlack54)),
                           ],
                         ),
                       ),
@@ -1772,6 +1774,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   Widget _buildThermalPreview() {
     final currency = _currencySymbol;
     final dateStr = DateFormat('dd - MMM - yyyy').format(widget.dateTime);
+    final timeStr = DateFormat('hh:mm a').format(widget.dateTime);
 
     // Calculate total quantity
     final totalQty = widget.items.fold<num>(0, (sum, item) => sum + ((item['quantity'] ?? 1) is int ? item['quantity'] : (item['quantity'] as num).toInt()));
@@ -1876,7 +1879,13 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Bill No: ${widget.invoiceNumber}', style: tStyle(size: 9, weight: FontWeight.w600)),
-                Text('Date: $dateStr', style: tStyle(size: 9, weight: FontWeight.w600)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('Date: $dateStr', style: tStyle(size: 9, weight: FontWeight.w600)),
+                    Text('Time: $timeStr', style: tStyle(size: 9, weight: FontWeight.w600)),
+                  ],
+                ),
               ],
             ),
 
@@ -1897,7 +1906,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                   children: [
                     Text('Customer: ${widget.customerName}', style: tStyle(size: 9, weight: FontWeight.w600)),
                     if (widget.customerPhone != null)
-                      Text('Phone: ${widget.customerPhone}', style: tStyle(size: 9, color: kBlack54)),
+                      Text('Contact: ${widget.customerPhone}', style: tStyle(size: 9, color: kBlack54)),
                     if (widget.customerGSTIN != null && widget.customerGSTIN!.isNotEmpty)
                       Text('Tax: ${widget.customerGSTIN}', style: tStyle(size: 9, color: kBlack54)),
                   ],
@@ -2429,7 +2438,10 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       // Bill No & Date
       bytes.addAll([esc, 0x61, 0x00]); // Left align
       final dateStr = DateFormat('dd-MMM-yyyy').format(widget.dateTime);
+      final timeStr = DateFormat('hh:mm a').format(widget.dateTime);
       bytes.addAll(enc(_formatTwoColumns('Bill No: ${widget.invoiceNumber}', 'Date: $dateStr', lineWidth)));
+      bytes.add(lf);
+      bytes.addAll(enc(_formatTwoColumns('', 'Time: $timeStr', lineWidth)));
       bytes.add(lf);
 
       // Customer Info
@@ -2438,11 +2450,9 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         bytes.add(lf);
         bytes.addAll([esc, 0x61, 0x00]);
         bytes.addAll([esc, 0x21, 0x08]);
-        for (final line in _wrapText(widget.customerName!, lineWidth)) {
-          bytes.addAll(enc(line));
-          bytes.add(lf);
-        }
+        bytes.addAll(enc(_truncateText('Customer: ${widget.customerName!}', lineWidth)));
         bytes.addAll([esc, 0x21, 0x00]);
+        bytes.add(lf);
         if (widget.customerPhone != null) {
           bytes.addAll(enc(_truncateText('Contact: ${widget.customerPhone}', lineWidth)));
           bytes.add(lf);
@@ -2874,6 +2884,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     final a4Colors = _getA4ThemeColors();
     final currency = _currencySymbol;
     final dateStr = DateFormat('dd/MM/yyyy').format(widget.dateTime);
+    final timeStr = DateFormat('hh:mm a').format(widget.dateTime);
 
     // Try to load logo image for PDF
     pw.ImageProvider? logoImage;
@@ -2982,6 +2993,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                     pw.Text('#${widget.invoiceNumber}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
                     pw.SizedBox(height: 2),
                     pw.Text(dateStr, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                    pw.Text(timeStr, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
                   ],
                 ),
               ],
@@ -3057,11 +3069,11 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text('BILL TO', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: themeColor, letterSpacing: 1.2)),
+                          pw.Text('CUSTOMER', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: themeColor, letterSpacing: 1.2)),
                           pw.SizedBox(height: 4),
                           pw.Text(widget.customerName!, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
                           if (widget.customerPhone != null)
-                            pw.Text(widget.customerPhone!, style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
+                            pw.Text('Contact: ${widget.customerPhone!}', style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
                           if (widget.customerGSTIN != null && widget.customerGSTIN!.isNotEmpty)
                             pw.Text('GSTIN: ${widget.customerGSTIN}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
                         ],
