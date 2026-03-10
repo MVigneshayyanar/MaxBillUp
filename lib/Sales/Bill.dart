@@ -480,41 +480,21 @@ class _BillPageState extends State<BillPage> {
                                     ),
                                   ),
                                   Expanded(
-                                    child: ValueListenableBuilder<TextEditingValue>(
-      valueListenable: qtyController,
-      builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
-        return TextField(
+                                    child: TextField(
                                       controller: qtyController,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.center,
                                       onChanged: (v) => setDialogState(() {}),
                                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                                      decoration: InputDecoration(
-                                        
+                                      decoration: const InputDecoration(
                                         isDense: true,
-                                        filled: true,
-                                        fillColor: const Color(0xFFF8F9FA),
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-                                        ),
-                                        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                                        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        filled: false,
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 14),
                                       ),
-                                    
-);
-      },
-    ),
+                                    ),
                                   ),
                                   IconButton(
                                     onPressed: () {
@@ -749,45 +729,37 @@ class _BillPageState extends State<BillPage> {
   }
 
   Widget _buildDialogInput(TextEditingController controller, String hint, StateSetter setDialogState, {bool isNumber = false}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: kGreyBg,
-        borderRadius: R.radius(context, 12),
-        border: Border.all(color: kGrey200),
-      ),
-      child: ValueListenableBuilder<TextEditingValue>(
+    return ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
       builder: (context, value, _) {
         final bool hasText = value.text.isNotEmpty;
         return TextField(
-        controller: controller,
-        keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-        onChanged: (v) => setDialogState(() {}),
-        style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 14)),
-        decoration: InputDecoration(
-          hintText: hint,
-          filled: true,
-          fillColor: const Color(0xFFF8F9FA),
-          contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 14)),
-          border: OutlineInputBorder(
-            borderRadius: R.radius(context, 12),
-            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          controller: controller,
+          keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+          onChanged: (v) => setDialogState(() {}),
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 14)),
+          decoration: InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor: const Color(0xFFF8F9FA),
+            contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 14)),
+            border: OutlineInputBorder(
+              borderRadius: R.radius(context, 12),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: R.radius(context, 12),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: R.radius(context, 12),
+              borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+            ),
+            labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w600),
+            floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: R.sp(context, 11), fontWeight: FontWeight.w900),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: R.radius(context, 12),
-            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: R.radius(context, 12),
-            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-          ),
-          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w600),
-          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: R.sp(context, 11), fontWeight: FontWeight.w900),
-        ),
-      
-);
+        );
       },
-    ),
     );
   }
 
@@ -1300,9 +1272,7 @@ class _BillPageState extends State<BillPage> {
                 const SizedBox(height: 16),
                 Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kBlack87)),
                 const SizedBox(height: 16),
-                Container(
-                  decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                  child: ValueListenableBuilder<TextEditingValue>(
+                ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
       builder: (context, value, _) {
         final bool hasText = value.text.isNotEmpty;
@@ -1336,7 +1306,6 @@ class _BillPageState extends State<BillPage> {
 );
       },
     ),
-                ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity, height: 48,
@@ -1376,9 +1345,7 @@ class _BillPageState extends State<BillPage> {
                 const SizedBox(height: 16),
                 const Text('Delivery Charge', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kBlack87)),
                 const SizedBox(height: 16),
-                Container(
-                  decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                  child: ValueListenableBuilder<TextEditingValue>(
+                ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
       builder: (context, value, _) {
         final bool hasText = value.text.isNotEmpty;
@@ -1390,8 +1357,6 @@ class _BillPageState extends State<BillPage> {
                     decoration: InputDecoration(
                       hintText: '0.00',
                       hintStyle: TextStyle(color: kBlack54, fontSize: 18),
-                      
-                      
                       prefixIcon: Icon(Icons.local_shipping_outlined, color: kBlack54),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FA),
@@ -1415,7 +1380,6 @@ class _BillPageState extends State<BillPage> {
 );
       },
     ),
-                ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -2091,9 +2055,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
             Row(
               children: [
                 Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                    child: ValueListenableBuilder<TextEditingValue>(
+                  child: ValueListenableBuilder<TextEditingValue>(
       valueListenable: _searchController,
       builder: (context, value, _) {
         final bool hasText = value.text.isNotEmpty;
@@ -2125,7 +2087,6 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
 );
       },
     ),
-                  ),
                 ),
                 const SizedBox(width: 8),
                 _squareActionBtn(HeroIcons.userPlus, _showAddCustomerDialog, kPrimaryColor),
@@ -2864,6 +2825,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   DateTime? _creditDueDate;
   String _currencySymbol = 'Rs '; // Default currency
   bool _isProcessing = false;
+  bool _updatingCredit = false; // Guard flag to prevent re-entrant credit updates
 
   // Treat as edit mode when either unsettledSaleId is provided OR an existingInvoiceNumber is provided
   bool get isEditMode => widget.unsettledSaleId != null || (widget.existingInvoiceNumber != null && widget.existingInvoiceNumber!.isNotEmpty);
@@ -2877,30 +2839,57 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       _cashAmount = widget.cashReceived_split ?? 0.0;
       _onlineAmount = widget.onlineReceived_split ?? 0.0;
       _creditAmount = widget.creditIssued_split ?? 0.0;
-      _cashController.text = _cashAmount.toStringAsFixed(2);
-      _onlineController.text = _onlineAmount.toStringAsFixed(2);
-      _creditController.text = _creditAmount.toStringAsFixed(2);
+      _cashController.text = _cashAmount > 0 ? _cashAmount.toStringAsFixed(2) : '';
+      _onlineController.text = _onlineAmount > 0 ? _onlineAmount.toStringAsFixed(2) : '';
+      _creditController.text = _creditAmount > 0 ? _creditAmount.toStringAsFixed(2) : '';
     }
-    _cashController.addListener(() {
-      setState(() {
-        _cashAmount = double.tryParse(_cashController.text) ?? 0.0;
-        _updateCreditAmount();
-      });
-    });
-    _onlineController.addListener(() {
-      setState(() {
-        _onlineAmount = double.tryParse(_onlineController.text) ?? 0.0;
-        _updateCreditAmount();
-      });
-    });
-    _creditController.addListener(() {
-      setState(() {
-        _creditAmount = double.tryParse(_creditController.text) ?? 0.0;
-      });
-    });
+    _cashController.addListener(_onCashChanged);
+    _onlineController.addListener(_onOnlineChanged);
+    _creditController.addListener(_onCreditChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _updateCreditAmount();
+      if (mounted && !isEditMode) _updateCreditAmount();
     });
+  }
+
+  void _onCashChanged() {
+    final val = double.tryParse(_cashController.text) ?? 0.0;
+    if (val != _cashAmount) {
+      setState(() {
+        _cashAmount = val;
+      });
+      _updateCreditAmount();
+    }
+  }
+
+  void _onOnlineChanged() {
+    final val = double.tryParse(_onlineController.text) ?? 0.0;
+    if (val != _onlineAmount) {
+      setState(() {
+        _onlineAmount = val;
+      });
+      _updateCreditAmount();
+    }
+  }
+
+  void _onCreditChanged() {
+    if (_updatingCredit) return; // Ignore changes triggered by _updateCreditAmount
+    final val = double.tryParse(_creditController.text) ?? 0.0;
+    if (val != _creditAmount) {
+      setState(() {
+        _creditAmount = val;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _cashController.removeListener(_onCashChanged);
+    _onlineController.removeListener(_onOnlineChanged);
+    _creditController.removeListener(_onCreditChanged);
+    _cashController.dispose();
+    _onlineController.dispose();
+    _creditController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCurrency() async {
@@ -2922,6 +2911,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     final paidAmount = _cashAmount + _onlineAmount;
     final remainingDue = widget.totalAmount - paidAmount;
 
+    _updatingCredit = true;
     if (remainingDue > 0 && widget.customerPhone != null) {
       _creditAmount = remainingDue;
       _creditController.text = remainingDue.toStringAsFixed(2);
@@ -2929,6 +2919,9 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       _creditAmount = 0.0;
       _creditController.text = '';
     }
+    _updatingCredit = false;
+
+    if (mounted) setState(() {});
   }
 
       Future<void> _processSplitSale() async {

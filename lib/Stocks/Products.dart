@@ -204,9 +204,7 @@ class _ProductsPageState extends State<ProductsPage> {
             child: Container(
               height: 46,
               decoration: BoxDecoration(
-                color: kPrimaryColor.withOpacity(0.04),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kGrey200),
               ),
               child: ValueListenableBuilder<TextEditingValue>(
       valueListenable: _searchController,
@@ -610,11 +608,7 @@ class _ProductsPageState extends State<ProductsPage> {
                     if (v > 0) setDialogState(() => ctrl.text = AmountFormatter.format(v - 1));
                   }),
                   Expanded(
-                    child: Container(
-                      height: 50,
-                      margin: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                      child: ValueListenableBuilder<TextEditingValue>(
+                    child: ValueListenableBuilder<TextEditingValue>(
       valueListenable: ctrl,
       builder: (context, value, _) {
         final bool hasText = value.text.isNotEmpty;
@@ -646,7 +640,6 @@ class _ProductsPageState extends State<ProductsPage> {
 );
       },
     ),
-                    ),
                   ),
                   _qtyBtn(HeroIcons.plus, () {
                     double v = double.tryParse(ctrl.text) ?? current;

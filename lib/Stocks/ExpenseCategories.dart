@@ -107,9 +107,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                 child: Container(
                   height: 46,
                   decoration: BoxDecoration(
-                    color: kPrimaryColor.withOpacity(0.04),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: kGrey200),
                   ),
                   child: ValueListenableBuilder<TextEditingValue>(
       valueListenable: _searchController,
@@ -273,9 +271,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
           child: Container(
             height: 46,
             decoration: BoxDecoration(
-              color: kPrimaryColor.withOpacity(0.04),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kGrey200),
             ),
             child: ValueListenableBuilder<TextEditingValue>(
       valueListenable: _searchController,
@@ -579,7 +575,7 @@ class _EditDeleteCategoryDialogState extends State<_EditDeleteCategoryDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kPrimaryColor, width: 1.5)),
+            decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)),
             child: ValueListenableBuilder<TextEditingValue>(
       valueListenable: _controller,
       builder: (context, value, _) {

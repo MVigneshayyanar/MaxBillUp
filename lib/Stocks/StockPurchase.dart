@@ -137,9 +137,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
               child: Container(
                 height: 46,
                 decoration: BoxDecoration(
-                  color: kPrimaryColor.withOpacity(0.04),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: kGrey200),
                 ),
                 child: ValueListenableBuilder<TextEditingValue>(
       valueListenable: _searchController,

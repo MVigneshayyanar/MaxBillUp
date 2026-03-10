@@ -142,9 +142,7 @@ class _VendorsPageState extends State<VendorsPage> {
                   child: Container(
                     height: 46,
                     decoration: BoxDecoration(
-                      color: kPrimaryColor.withOpacity(0.04),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: kGrey200),
                     ),
                     child: ValueListenableBuilder<TextEditingValue>(
       valueListenable: _searchController,
@@ -546,28 +544,21 @@ class _VendorsPageState extends State<VendorsPage> {
   Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.magnifyingGlass, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No results for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
 
   Widget _buildDialogField(TextEditingController ctrl, String label, HeroIcons icon, {TextInputType type = TextInputType.text, int maxLines = 1}) {
-    return ValueListenableBuilder(
+    return ValueListenableBuilder<TextEditingValue>(
       valueListenable: ctrl,
-      builder: (context, val, child) {
-        bool filled = ctrl.text.isNotEmpty;
-        return Container(
-          decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)),
-          child: ValueListenableBuilder<TextEditingValue>(
-            valueListenable: ctrl,
-            builder: (context, value, _) {
-              final bool hasText = value.text.isNotEmpty;
-              return TextField(
-                controller: ctrl, keyboardType: type, maxLines: maxLines,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-                decoration: InputDecoration(hintText: label, prefixIcon: HeroIcon(icon, color: filled ? kPrimaryColor : kBlack54, size: 18),
-                  filled: true, fillColor: const Color(0xFFF8F9FA),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2.0)),
-                ),
-              );
-            },
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
+          controller: ctrl, keyboardType: type, maxLines: maxLines,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+          decoration: InputDecoration(
+            hintText: label,
+            prefixIcon: HeroIcon(icon, color: hasText ? kPrimaryColor : kBlack54, size: 18),
+            filled: true, fillColor: const Color(0xFFF8F9FA),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2.0)),
           ),
         );
       },

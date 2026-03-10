@@ -272,27 +272,24 @@ class CommonWidgets {
   }
 
   static Widget _buildDialogField({required TextEditingController controller, required String label, required HeroIcons icon, TextInputType? keyboardType, Function(String)? onChanged}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: kGreyBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kGrey200),
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        onChanged: onChanged,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: HeroIcon(icon, color: kPrimaryColor, size: 18),
-          ),
-          labelStyle: const TextStyle(color: kBlack54, fontSize: 13),
-
-
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      onChanged: onChanged,
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: HeroIcon(icon, color: kPrimaryColor, size: 18),
         ),
+        filled: true,
+        fillColor: const Color(0xFFF8F9FA),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2.0)),
+        labelStyle: const TextStyle(color: kBlack54, fontSize: 13),
       ),
     );
   }
@@ -411,22 +408,23 @@ class CommonWidgets {
                   Row(
                     children: [
                       Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                          child: TextField(
-                            controller: searchController,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                            decoration: const InputDecoration(
-                              hintText: 'Search...',
-                              prefixIcon: Padding(
-                                padding: EdgeInsets.all(12.0),
-                                child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
-                              ),
-
-
+                        child: TextField(
+                          controller: searchController,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          decoration: InputDecoration(
+                            hintText: 'Search...',
+                            prefixIcon: const Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
                             ),
-                            onChanged: (value) => setDialogState(() => searchQuery = value.toLowerCase()),
+                            filled: true,
+                            fillColor: const Color(0xFFF8F9FA),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2.0)),
                           ),
+                          onChanged: (value) => setDialogState(() => searchQuery = value.toLowerCase()),
                         ),
                       ),
                       const SizedBox(width: 10),

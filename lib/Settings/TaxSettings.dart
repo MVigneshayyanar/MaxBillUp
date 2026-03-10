@@ -151,9 +151,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-              child: ValueListenableBuilder<TextEditingValue>(
+            ValueListenableBuilder<TextEditingValue>(
       valueListenable: nameController,
       builder: (context, value, _) {
         final bool hasText = value.text.isNotEmpty;
@@ -184,7 +182,6 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
 );
       },
     ),
-            ),
           ],
         ),
         actions: [

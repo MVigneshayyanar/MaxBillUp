@@ -346,13 +346,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Gram input
-            Container(
-              decoration: BoxDecoration(
-                color: kGreyBg,
-                borderRadius: R.radius(context, 12),
-                border: Border.all(color: kGrey200),
-              ),
-              child: ValueListenableBuilder<TextEditingValue>(
+            ValueListenableBuilder<TextEditingValue>(
       valueListenable: gramController,
       builder: (context, value, _) {
         final bool hasText = value.text.isNotEmpty;
@@ -362,41 +356,21 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 16)),
                 decoration: InputDecoration(
                   labelText: 'Grams',
-                  
                   suffixText: 'g',
-                  suffixStyle: TextStyle(
-                    color: kPrimaryColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: R.sp(context, 14),
-                  ),
+                  suffixStyle: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w700, fontSize: R.sp(context, 14)),
                   filled: true,
                   fillColor: const Color(0xFFF8F9FA),
                   contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 14)),
-                  border: OutlineInputBorder(
-                    borderRadius: R.radius(context, 12),
-                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: R.radius(context, 12),
-                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: R.radius(context, 12),
-                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-                  ),
+                  border: OutlineInputBorder(borderRadius: R.radius(context, 12), borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0)),
+                  enabledBorder: OutlineInputBorder(borderRadius: R.radius(context, 12), borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0)),
+                  focusedBorder: OutlineInputBorder(borderRadius: R.radius(context, 12), borderSide: const BorderSide(color: kPrimaryColor, width: 2.0)),
                   labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w600),
                   floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: R.sp(context, 11), fontWeight: FontWeight.w900),
                 ),
-                onChanged: (value) {
-                  if (value.isNotEmpty && kgController.text.isNotEmpty) {
-                    kgController.clear();
-                  }
-                },
-              
-);
+                onChanged: (value) { if (value.isNotEmpty && kgController.text.isNotEmpty) { kgController.clear(); } },
+        );
       },
     ),
-            ),
             SizedBox(height: R.sp(context, 12)),
             // OR text
             Text(
@@ -409,13 +383,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             ),
             SizedBox(height: R.sp(context, 12)),
             // Kilogram input
-            Container(
-              decoration: BoxDecoration(
-                color: kGreyBg,
-                borderRadius: R.radius(context, 12),
-                border: Border.all(color: kGrey200),
-              ),
-              child: ValueListenableBuilder<TextEditingValue>(
+            ValueListenableBuilder<TextEditingValue>(
       valueListenable: kgController,
       builder: (context, value, _) {
         final bool hasText = value.text.isNotEmpty;
@@ -425,41 +393,21 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 16)),
                 decoration: InputDecoration(
                   labelText: 'Kilograms',
-                  
                   suffixText: 'kg',
-                  suffixStyle: TextStyle(
-                    color: kPrimaryColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: R.sp(context, 14),
-                  ),
+                  suffixStyle: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w700, fontSize: R.sp(context, 14)),
                   filled: true,
                   fillColor: const Color(0xFFF8F9FA),
                   contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 14)),
-                  border: OutlineInputBorder(
-                    borderRadius: R.radius(context, 12),
-                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: R.radius(context, 12),
-                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: R.radius(context, 12),
-                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-                  ),
+                  border: OutlineInputBorder(borderRadius: R.radius(context, 12), borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0)),
+                  enabledBorder: OutlineInputBorder(borderRadius: R.radius(context, 12), borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0)),
+                  focusedBorder: OutlineInputBorder(borderRadius: R.radius(context, 12), borderSide: const BorderSide(color: kPrimaryColor, width: 2.0)),
                   labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w600),
                   floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: R.sp(context, 11), fontWeight: FontWeight.w900),
                 ),
-                onChanged: (value) {
-                  if (value.isNotEmpty && gramController.text.isNotEmpty) {
-                    gramController.clear();
-                  }
-                },
-              
-);
+                onChanged: (value) { if (value.isNotEmpty && gramController.text.isNotEmpty) { gramController.clear(); } },
+        );
       },
     ),
-            ),
             SizedBox(height: R.sp(context, 16)),
             // Price info
             Container(
@@ -837,9 +785,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             child: Container(
               height: R.sp(context, 46),
               decoration: BoxDecoration(
-                color: kPrimaryColor.withOpacity(0.04),
                 borderRadius: R.radius(context, 12),
-                border: Border.all(color: kGrey200),
               ),
               child: ValueListenableBuilder<TextEditingValue>(
       valueListenable: _searchCtrl,

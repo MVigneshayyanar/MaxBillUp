@@ -172,9 +172,7 @@ class _CategoryPageState extends State<CategoryPage> {
             child: Container(
               height: 46,
               decoration: BoxDecoration(
-                color: kPrimaryColor.withOpacity(0.04),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kGrey200),
               ),
               child: ValueListenableBuilder<TextEditingValue>(
       valueListenable: _searchController,
@@ -785,7 +783,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
       decoration: const BoxDecoration(color: kWhite, border: Border(bottom: BorderSide(color: kGrey200))),
       child: Container(
         height: 46,
-        decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.04), borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+        decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.04), borderRadius: BorderRadius.circular(12)),
         child: ValueListenableBuilder<TextEditingValue>(
       valueListenable: _searchController,
       builder: (context, value, _) {
