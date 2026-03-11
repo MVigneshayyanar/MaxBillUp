@@ -70,11 +70,19 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
 
       final items = widget.initialQuotationData!['items'] as List<dynamic>? ?? [];
       _sharedCartItems = items.map((item) {
+        List<Map<String, dynamic>>? itemTaxes;
+        if (item['taxes'] is List && (item['taxes'] as List).isNotEmpty) {
+          itemTaxes = (item['taxes'] as List).map((t) => Map<String, dynamic>.from(t as Map)).toList();
+        }
         return CartItem(
           productId: item['productId'] ?? '',
           name: item['name'] ?? '',
           price: (item['price'] ?? 0.0).toDouble(),
           quantity: item['quantity'] ?? 1,
+          taxes: itemTaxes,
+          taxName: item['taxName'] as String?,
+          taxPercentage: item['taxPercentage'] != null ? (item['taxPercentage'] as num).toDouble() : null,
+          taxType: item['taxType'] as String?,
         );
       }).toList();
     }
@@ -396,7 +404,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
 
                             if (newQty > 0) {
                               final List<CartItem> nextItems = List<CartItem>.from(_sharedCartItems!);
-                              nextItems[idx] = CartItem(productId: item.productId, name: newName, price: newPrice, quantity: newQty, taxName: item.taxName, taxPercentage: item.taxPercentage, taxType: item.taxType);
+                              nextItems[idx] = CartItem(productId: item.productId, name: newName, price: newPrice, quantity: newQty, taxes: item.taxes.isNotEmpty ? item.taxes : null, taxName: item.taxName, taxPercentage: item.taxPercentage, taxType: item.taxType);
                               _updateCartItems(nextItems);
                             }
                             Navigator.pop(context);

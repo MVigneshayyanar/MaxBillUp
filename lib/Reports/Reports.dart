@@ -2639,8 +2639,8 @@ class _DayBookPageState extends State<DayBookPage> {
 
                                 allTransactions.add({
                                   'category': 'Expense',
-                                  'particulars': data['category']?.toString() ?? 'VI EXPENSE',
-                                  'name': data['name']?.toString() ?? 'SELF',
+                                  'particulars': data['expenseType']?.toString() ?? data['category']?.toString() ?? 'Expense',
+                                  'name': data['expenseName']?.toString() ?? data['name']?.toString() ?? data['title']?.toString() ?? 'Expense',
                                   'total': amount,
                                   'cashIn': 0.0,
                                   'cashOut': amount,
@@ -7876,7 +7876,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
                                   ),
                                   alignment: Alignment.center,
                                   child: Text(
-                                    'Not Sold (${notSoldProducts.length})',
+                                    'Unsold (${notSoldProducts.length})',
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w800,
@@ -8259,7 +8259,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('NOT SOLD PRODUCTS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+              const Text('UNSOLD PRODUCTS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: kGoogleRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),

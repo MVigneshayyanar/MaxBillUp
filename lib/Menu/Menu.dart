@@ -1518,15 +1518,22 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
 
     if (!isSettled && !isCancelled && !isEdited && !isReturned) {
       final List<CartItem> cartItems = (data['items'] as List<dynamic>? ?? [])
-          .map((item) => CartItem(
+          .map((item) {
+        List<Map<String, dynamic>>? itemTaxes;
+        if (item['taxes'] is List && (item['taxes'] as List).isNotEmpty) {
+          itemTaxes = (item['taxes'] as List).map((t) => Map<String, dynamic>.from(t as Map)).toList();
+        }
+        return CartItem(
         productId: item['productId'] ?? '',
         name: item['name'] ?? '',
         price: (item['price'] ?? 0).toDouble(),
         quantity: item['quantity'] is int ? item['quantity'].toDouble() : (item['quantity'] is double ? item['quantity'] : double.tryParse(item['quantity'].toString()) ?? 1.0),
+        taxes: itemTaxes,
         taxName: item['taxName'],
         taxPercentage: item['taxPercentage']?.toDouble(),
         taxType: item['taxType'],
-      ))
+      );
+      })
           .toList();
 
       final isUnsettledSale = data.containsKey('paymentStatus') && data['paymentStatus'] == 'unsettled';
@@ -1802,20 +1809,21 @@ class SalesDetailPage extends StatelessWidget {
         }
       }
 
-      // Prepare items for invoice page with complete tax information
+      // Prepare items — preserve saved totals and multi-tax arrays
       final items = (data['items'] as List<dynamic>? ?? [])
           .map((item) => {
         'name': item['name'] ?? '',
         'quantity': item['quantity'] ?? 0,
         'price': (item['price'] ?? 0).toDouble(),
-        'total': ((item['price'] ?? 0) * (item['quantity'] ?? 1)).toDouble(),
+        // Use the saved total (correctly reflects included/added tax); fallback to price×qty
+        'total': (item['total'] ?? ((item['price'] ?? 0) * (item['quantity'] ?? 1))).toDouble(),
         'productId': item['productId'] ?? '',
+        'taxes': item['taxes'],          // multi-tax array (may be null for old records)
         'taxName': item['taxName'],
         'taxPercentage': (item['taxPercentage'] ?? 0).toDouble(),
         'taxAmount': (item['taxAmount'] ?? 0).toDouble(),
         'taxType': item['taxType'],
-      })
-          .toList();
+      }).toList();
 
       // Get timestamp
       DateTime dateTime = DateTime.now();
@@ -1825,12 +1833,74 @@ class SalesDetailPage extends StatelessWidget {
         dateTime = DateTime.tryParse(data['date'].toString()) ?? DateTime.now();
       }
 
-      // Calculate tax information from items
-      final taxCalculations = _calculateTaxTotals(items.cast<Map<String, dynamic>>());
-      final taxBreakdown = taxCalculations['taxBreakdown'] as Map<String, double>;
-      final taxList = taxBreakdown.entries
-          .map((e) => {'name': e.key, 'amount': e.value})
-          .toList();
+      // ── Prefer saved document-level tax data (already correct from Bill.dart) ──
+      List<Map<String, dynamic>>? taxList;
+      double totalTax = (data['totalTax'] ?? 0).toDouble();
+      double subtotal = (data['subtotal'] ?? 0).toDouble();
+
+      final savedTaxes = data['taxes'];
+      if (savedTaxes is List && savedTaxes.isNotEmpty) {
+        // Saved taxes already have correct names (e.g. "CGST @9%") and amounts
+        taxList = savedTaxes.map((t) => Map<String, dynamic>.from(t as Map)).toList();
+        if (totalTax == 0) {
+          totalTax = taxList.fold(0.0, (s, t) => s + ((t['amount'] ?? 0) as num).toDouble());
+        }
+      } else {
+        // Fallback: recalculate from per-item fields (legacy records)
+        final Map<String, double> taxMap = {};
+        double recalcSubtotal = 0;
+        double recalcTax = 0;
+        for (final item in items) {
+          final price = (item['price'] as double);
+          final qty = (item['quantity'] is int)
+              ? (item['quantity'] as int).toDouble()
+              : double.tryParse(item['quantity'].toString()) ?? 1.0;
+          final taxPct = (item['taxPercentage'] as double);
+          final taxType = item['taxType'] as String?;
+          double itemTax = (item['taxAmount'] as double);
+          double itemBase = price * qty;
+
+          if (itemTax == 0 && taxPct > 0 && taxType != null) {
+            if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
+              itemBase = (price * qty) / (1 + taxPct / 100);
+              itemTax = (price * qty) - itemBase;
+            } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
+              itemTax = price * qty * (taxPct / 100);
+            }
+          } else if (itemTax > 0 && (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax')) {
+            itemBase = (price * qty) - itemTax;
+          }
+
+          recalcSubtotal += itemBase;
+          recalcTax += itemTax;
+
+          if (itemTax > 0 && taxPct > 0) {
+            final rawTaxes = item['taxes'];
+            if (rawTaxes is List && rawTaxes.isNotEmpty) {
+              for (final t in rawTaxes) {
+                final tName = (t['name'] ?? 'Tax').toString();
+                final tPct = ((t['percentage'] ?? 0.0) as num).toDouble();
+                if (tPct > 0) {
+                  final label = '$tName @${tPct % 1 == 0 ? tPct.toInt() : tPct}%';
+                  taxMap[label] = (taxMap[label] ?? 0) + itemTax * (tPct / taxPct);
+                }
+              }
+            } else {
+              final tName = item['taxName'] as String?;
+              if (tName != null && tName.isNotEmpty) {
+                final label = '$tName @${taxPct % 1 == 0 ? taxPct.toInt() : taxPct}%';
+                taxMap[label] = (taxMap[label] ?? 0) + itemTax;
+              }
+            }
+          }
+        }
+        if (taxMap.isNotEmpty) taxList = taxMap.entries.map((e) => <String, dynamic>{'name': e.key, 'amount': e.value}).toList();
+        if (totalTax == 0) totalTax = recalcTax;
+        if (subtotal == 0) subtotal = recalcSubtotal;
+      }
+
+      // Last-resort subtotal: total − tax
+      if (subtotal == 0) subtotal = (data['total'] ?? 0).toDouble() - totalTax;
 
       // Close loading
       if (context.mounted) {
@@ -1849,9 +1919,9 @@ class SalesDetailPage extends StatelessWidget {
               invoiceNumber: data['invoiceNumber']?.toString() ?? 'N/A',
               dateTime: dateTime,
               items: items.cast<Map<String, dynamic>>(),
-              subtotal: taxCalculations['subtotalWithoutTax'] as double,
+              subtotal: subtotal,
               discount: (data['discount'] ?? 0).toDouble(),
-              taxes: taxList.isNotEmpty ? taxList : null,
+              taxes: (taxList != null && taxList.isNotEmpty) ? taxList : null,
               total: (data['total'] ?? 0).toDouble(),
               paymentMode: data['paymentMode'] ?? 'Cash',
               cashReceived: (data['cashReceived'] ?? data['total'] ?? 0).toDouble(),
@@ -2102,34 +2172,37 @@ class SalesDetailPage extends StatelessWidget {
               final dateStr = ts != null ? DateFormat('dd MMM yyyy • hh:mm a').format(ts.toDate()) : '--';
               final items = (data['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
 
-              // Calculate tax from items (for new sales with tax fields)
-              final taxInfo = _calculateTaxTotals(items);
-              double subtotalWithoutTax = taxInfo['subtotalWithoutTax'] as double;
-              Map<String, double> taxBreakdown = taxInfo['taxBreakdown'] as Map<String, double>;
+              // ── Tax breakdown: prefer saved Firestore taxes (already @RATE% formatted) ──
+              Map<String, double> taxBreakdown = {};
+              double subtotalWithoutTax = (data['subtotal'] ?? 0).toDouble();
 
-              // Fallback: If no tax in items, check if document has taxes field (backward compatibility)
-              if (taxBreakdown.isEmpty && data['taxes'] != null) {
-                final docTaxes = data['taxes'] as List<dynamic>?;
-                if (docTaxes != null) {
-                  for (var tax in docTaxes) {
-                    final taxName = tax['name'] as String?;
-                    final taxAmount = (tax['amount'] ?? 0).toDouble();
-                    if (taxName != null && taxAmount > 0) {
-                      taxBreakdown[taxName] = taxAmount;
-                    }
+              final savedTaxes = data['taxes'];
+              if (savedTaxes is List && savedTaxes.isNotEmpty) {
+                // Use saved taxes directly — guaranteed correct
+                for (var tax in savedTaxes) {
+                  final taxName = tax['name'] as String?;
+                  final taxAmount = (tax['amount'] ?? 0).toDouble();
+                  if (taxName != null && taxAmount > 0) {
+                    taxBreakdown[taxName] = (taxBreakdown[taxName] ?? 0) + taxAmount;
                   }
                 }
-                // Use stored subtotal if available
-                if (data['subtotal'] != null) {
-                  subtotalWithoutTax = (data['subtotal'] ?? 0).toDouble();
+                // If subtotal not stored, compute from total - totalTax
+                if (subtotalWithoutTax == 0) {
+                  final totalTax = (data['totalTax'] ?? taxBreakdown.values.fold(0.0, (a, b) => a + b)).toDouble();
+                  subtotalWithoutTax = (data['total'] ?? 0).toDouble() - totalTax;
                 }
-              }
+              } else {
+                // Fallback: recalculate from items (legacy records)
+                final taxInfo = _calculateTaxTotals(items);
+                subtotalWithoutTax = taxInfo['subtotalWithoutTax'] as double;
+                taxBreakdown = taxInfo['taxBreakdown'] as Map<String, double>;
 
-              // Fallback: If still no tax but totalTax exists
-              if (taxBreakdown.isEmpty && data['totalTax'] != null) {
-                final totalTax = (data['totalTax'] ?? 0).toDouble();
-                if (totalTax > 0) {
-                  taxBreakdown['Tax'] = totalTax;
+                // Still empty? try totalTax field
+                if (taxBreakdown.isEmpty && (data['totalTax'] ?? 0) > 0) {
+                  taxBreakdown['Tax'] = (data['totalTax'] as num).toDouble();
+                }
+                if (subtotalWithoutTax == 0 && data['subtotal'] != null) {
+                  subtotalWithoutTax = (data['subtotal'] as num).toDouble();
                 }
               }
 
@@ -7520,7 +7593,7 @@ class _EditBillPageState extends State<EditBillPage> {
     }
   });
 
-  // Get taxes grouped by name for display
+  // Get taxes grouped by name for display — multi-tax support
   Map<String, double> get taxBreakdown {
     final Map<String, double> taxMap = {};
     for (var item in _items) {
@@ -7530,22 +7603,38 @@ class _EditBillPageState extends State<EditBillPage> {
           : double.tryParse(item['quantity'].toString()) ?? 0.0;
       final taxPercentage = (item['taxPercentage'] ?? 0).toDouble();
       final taxType = item['taxType'] as String?;
-      final taxName = item['taxName'] as String?;
-
-      if (taxPercentage == 0 || taxName == null) continue;
-
       final itemTotal = price * qty;
-      double taxAmount = 0;
 
+      if (taxPercentage == 0) continue;
+
+      double totalTaxAmount = 0;
       if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
         final taxRate = taxPercentage / 100;
-        taxAmount = itemTotal - (itemTotal / (1 + taxRate));
+        totalTaxAmount = itemTotal - (itemTotal / (1 + taxRate));
       } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
-        taxAmount = itemTotal * (taxPercentage / 100);
+        totalTaxAmount = itemTotal * (taxPercentage / 100);
       }
 
-      if (taxAmount > 0) {
-        taxMap[taxName] = (taxMap[taxName] ?? 0) + taxAmount;
+      if (totalTaxAmount <= 0) continue;
+
+      // Check for multi-tax array
+      final rawTaxes = item['taxes'];
+      if (rawTaxes is List && rawTaxes.isNotEmpty) {
+        for (var tax in rawTaxes) {
+          final name = (tax['name'] ?? 'Tax').toString();
+          final pct = ((tax['percentage'] ?? 0.0) as num).toDouble();
+          if (pct > 0 && taxPercentage > 0) {
+            final label = '$name @${pct % 1 == 0 ? pct.toInt() : pct}%';
+            final share = totalTaxAmount * (pct / taxPercentage);
+            taxMap[label] = (taxMap[label] ?? 0) + share;
+          }
+        }
+      } else {
+        final taxName = item['taxName'] as String?;
+        if (taxName != null) {
+          final label = taxPercentage > 0 ? '$taxName @${taxPercentage % 1 == 0 ? taxPercentage.toInt() : taxPercentage}%' : taxName;
+          taxMap[label] = (taxMap[label] ?? 0) + totalTaxAmount;
+        }
       }
     }
     return taxMap;
@@ -7631,11 +7720,16 @@ class _EditBillPageState extends State<EditBillPage> {
                             final qty = (item['quantity'] is int)
                                 ? (item['quantity'] as int).toDouble()
                                 : double.tryParse(item['quantity'].toString()) ?? 1.0;
+                            List<Map<String, dynamic>>? itemTaxes;
+                            if (item['taxes'] is List && (item['taxes'] as List).isNotEmpty) {
+                              itemTaxes = (item['taxes'] as List).map((t) => Map<String, dynamic>.from(t as Map)).toList();
+                            }
                             return CartItem(
                               productId: item['productId'] ?? '',
                               name: item['name'] ?? '',
                               price: (item['price'] ?? 0).toDouble(),
                               quantity: qty,
+                              taxes: itemTaxes,
                               taxName: item['taxName'],
                               taxPercentage: item['taxPercentage'] != null ? (item['taxPercentage'] as num).toDouble() : null,
                               taxType: item['taxType'],
@@ -7985,11 +8079,16 @@ class _EditBillPageState extends State<EditBillPage> {
         final qty = (item['quantity'] is int)
             ? (item['quantity'] as int).toDouble()
             : (item['quantity'] is double ? item['quantity'] as double : double.tryParse(item['quantity'].toString()) ?? 1.0);
+        List<Map<String, dynamic>>? itemTaxes;
+        if (item['taxes'] is List && (item['taxes'] as List).isNotEmpty) {
+          itemTaxes = (item['taxes'] as List).map((t) => Map<String, dynamic>.from(t as Map)).toList();
+        }
         return CartItem(
           productId: item['productId'] ?? '',
           name: item['name'] ?? '',
           price: (item['price'] ?? 0).toDouble(),
           quantity: qty,
+          taxes: itemTaxes,
           taxName: item['taxName'],
           taxPercentage: item['taxPercentage'] != null ? (item['taxPercentage'] as num).toDouble() : null,
           taxType: item['taxType'],

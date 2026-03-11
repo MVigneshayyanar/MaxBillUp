@@ -227,11 +227,18 @@ class _QuotationPageState extends State<QuotationPage> {
               return prefix.isNotEmpty ? '$prefix$number' : number;
             }();
 
-      // Calculate tax information from cart items
+      // Calculate tax information from cart items — multi-tax support
       final Map<String, double> taxMap = {};
       for (var item in widget.cartItems) {
-        if (item.taxAmount > 0 && item.taxName != null) {
-          taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
+        final breakdown = item.taxBreakdown;
+        if (breakdown.isNotEmpty) {
+          breakdown.forEach((name, amount) {
+            taxMap[name] = (taxMap[name] ?? 0.0) + amount;
+          });
+        } else if (item.taxAmount > 0 && item.taxName != null) {
+          final pct = item.taxPercentage ?? 0;
+          final label = pct > 0 ? '${item.taxName!} @${pct % 1 == 0 ? pct.toInt() : pct}%' : item.taxName!;
+          taxMap[label] = (taxMap[label] ?? 0.0) + item.taxAmount;
         }
       }
       final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
@@ -264,6 +271,7 @@ class _QuotationPageState extends State<QuotationPage> {
           'price': item.price,
           'quantity': item.quantity,
           'total': item.total,
+          'taxes': item.taxes,
           'taxName': item.taxName,
           'taxPercentage': item.taxPercentage ?? 0,
           'taxAmount': item.taxAmount,
@@ -659,11 +667,18 @@ class _QuotationPageState extends State<QuotationPage> {
   }
 
   Widget _buildFinalSummary() {
-    // Calculate tax information from cart items
+    // Calculate tax information from cart items — multi-tax support
     final Map<String, double> taxMap = {};
     for (var item in widget.cartItems) {
-      if (item.taxAmount > 0 && item.taxName != null) {
-        taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
+      final breakdown = item.taxBreakdown;
+      if (breakdown.isNotEmpty) {
+        breakdown.forEach((name, amount) {
+          taxMap[name] = (taxMap[name] ?? 0.0) + amount;
+        });
+      } else if (item.taxAmount > 0 && item.taxName != null) {
+        final pct = item.taxPercentage ?? 0;
+        final label = pct > 0 ? '${item.taxName!} @${pct % 1 == 0 ? pct.toInt() : pct}%' : item.taxName!;
+        taxMap[label] = (taxMap[label] ?? 0.0) + item.taxAmount;
       }
     }
     final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
@@ -692,16 +707,19 @@ class _QuotationPageState extends State<QuotationPage> {
         ),
         SizedBox(height: R.sp(context, 8)),
 
-        // Tax (if applicable)
+        // Tax lines (individual breakdowns)
         if (totalTax > 0) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Tax', style: TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: R.sp(context, 13))),
-              Text('$_currencySymbol${totalTax.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 14), color: kBlack87))
-            ]
-          ),
-          SizedBox(height: R.sp(context, 8)),
+          ...taxMap.entries.map((entry) => Padding(
+            padding: EdgeInsets.only(bottom: R.sp(context, 4)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(entry.key, style: TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: R.sp(context, 13))),
+                Text('$_currencySymbol${entry.value.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 14), color: kBlack87))
+              ]
+            ),
+          )),
+          SizedBox(height: R.sp(context, 4)),
         ],
 
         // Discount

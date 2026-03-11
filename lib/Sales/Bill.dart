@@ -798,6 +798,7 @@ class _BillPageState extends State<BillPage> {
       name: newName,
       price: newPrice,
       quantity: newQty,
+      taxes: item.taxes.isNotEmpty ? item.taxes : null,
       taxName: taxName,
       taxPercentage: taxPercentage,
       taxType: taxType,
@@ -2233,9 +2234,20 @@ class _PaymentPageState extends State<PaymentPage> {
       invoiceNumber = prefix.isNotEmpty ? '$prefix$number' : number;
     }
 
-    // Calculate tax data (no async needed)
+    // Calculate tax data — uses taxBreakdown for multi-tax per item
     final Map<String, double> taxMap = {};
-    for (var item in widget.cartItems) { if (item.taxAmount > 0 && item.taxName != null) taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount; }
+    for (var item in widget.cartItems) {
+      final breakdown = item.taxBreakdown;
+      if (breakdown.isNotEmpty) {
+        breakdown.forEach((name, amount) {
+          taxMap[name] = (taxMap[name] ?? 0.0) + amount;
+        });
+      } else if (item.taxAmount > 0 && item.taxName != null) {
+        final pct = item.taxPercentage ?? 0;
+        final label = pct > 0 ? '${item.taxName!} @${pct % 1 == 0 ? pct.toInt() : pct}%' : item.taxName!;
+        taxMap[label] = (taxMap[label] ?? 0.0) + item.taxAmount;
+      }
+    }
     final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
     final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
 
@@ -2263,7 +2275,7 @@ class _PaymentPageState extends State<PaymentPage> {
   Future<void> _saveDataInBackground(String invoiceNumber, List<Map<String, dynamic>> taxList, double totalTax) async {
     try {
       final baseSaleData = {
-        'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'cost': e.cost, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
+        'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'cost': e.cost, 'total':e.total, 'taxes': e.taxes, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
         'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed, 'discount': widget.discountAmount, 'creditUsed': widget.actualCreditUsed, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
         'paymentMode': widget.paymentMode, 'cashReceived': _cashReceived, 'change': _change > 0 ? _change : 0.0,
         if (widget.paymentMode == 'Credit') ...{
@@ -2969,13 +2981,24 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
           }
 
           final Map<String, double> taxMap = {};
-          for (var item in widget.cartItems) { if (item.taxAmount > 0 && item.taxName != null) taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount; }
+          for (var item in widget.cartItems) {
+            final breakdown = item.taxBreakdown;
+            if (breakdown.isNotEmpty) {
+              breakdown.forEach((name, amount) {
+                taxMap[name] = (taxMap[name] ?? 0.0) + amount;
+              });
+            } else if (item.taxAmount > 0 && item.taxName != null) {
+              final pct = item.taxPercentage ?? 0;
+              final label = pct > 0 ? '${item.taxName!} @${pct % 1 == 0 ? pct.toInt() : pct}%' : item.taxName!;
+              taxMap[label] = (taxMap[label] ?? 0.0) + item.taxAmount;
+            }
+          }
           final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
           final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
 
           final baseSaleData = {
             'invoiceNumber': invoiceNumber,
-            'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
+            'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total, 'taxes': e.taxes, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
             'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed,
             'discount': widget.discountAmount,
             'creditUsed': widget.actualCreditUsed,

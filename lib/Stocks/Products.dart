@@ -303,10 +303,23 @@ class _ProductsPageState extends State<ProductsPage> {
     final stockEnabled = data['stockEnabled'] ?? false;
     final stock = (data['currentStock'] ?? 0.0).toDouble();
     final category = data['category'] ?? 'General';
-    final taxType = (data['taxName'] ?? '').toString().trim();
-    final taxPercent = (data['taxPercentage'] ?? 0.0).toDouble();
     final isFavorite = data['isFavorite'] ?? false;
-    final hasTax = taxType.isNotEmpty && taxPercent > 0;
+
+    // Read multiple taxes (new format) or fall back to single tax (legacy)
+    final List<Map<String, dynamic>> taxesList = [];
+    final rawTaxes = data['taxes'];
+    if (rawTaxes is List && rawTaxes.isNotEmpty) {
+      for (var t in rawTaxes) {
+        if (t is Map) taxesList.add(Map<String, dynamic>.from(t));
+      }
+    } else {
+      final taxType = (data['taxName'] ?? '').toString().trim();
+      final taxPercent = (data['taxPercentage'] ?? 0.0).toDouble();
+      if (taxType.isNotEmpty && taxPercent > 0) {
+        taxesList.add({'name': taxType, 'percentage': taxPercent});
+      }
+    }
+    final hasTax = taxesList.isNotEmpty;
 
     final isOutOfStock = stockEnabled && stock <= 0;
     final isLowStock = stockEnabled && stock > 0 && stock < 10;
@@ -413,9 +426,13 @@ class _ProductsPageState extends State<ProductsPage> {
                             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kPrimaryColor),
                           ),
                           if (hasTax)
-                            Text(
-                              '$taxType (${taxPercent.toStringAsFixed(1)}%)',
-                              style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w600),
+                            Flexible(
+                              child: Text(
+                                taxesList.map((t) => '${t['name']} (${(t['percentage'] as num).toDouble().toStringAsFixed(1)}%)').join(' + '),
+                                style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w600),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                         ],
                       ),

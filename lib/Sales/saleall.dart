@@ -113,12 +113,18 @@ class _SaleAllPageState extends State<SaleAllPage> {
       final items = widget.savedOrderData!['items'] as List?;
       if (items != null) {
         for (var item in items) {
+          // Read multiple taxes (new format) or fall back to legacy
+          List<Map<String, dynamic>>? itemTaxes;
+          if (item['taxes'] is List && (item['taxes'] as List).isNotEmpty) {
+            itemTaxes = (item['taxes'] as List).map((t) => Map<String, dynamic>.from(t as Map)).toList();
+          }
           _cart.add(CartItem(
             productId: item['productId'] ?? '',
             name: item['name'] ?? '',
             price: (item['price'] ?? 0.0).toDouble(),
             cost: (item['cost'] ?? 0.0).toDouble(),
             quantity: (item['quantity'] ?? 1).toDouble(),
+            taxes: itemTaxes,
             taxName: item['taxName'] as String?,
             taxPercentage: item['taxPercentage'] != null ? (item['taxPercentage'] as num).toDouble() : null,
             taxType: item['taxType'] as String?,
@@ -299,8 +305,17 @@ class _SaleAllPageState extends State<SaleAllPage> {
     return name[0].toUpperCase() + name.substring(1).toLowerCase();
   }
 
+  /// Parses taxes list from product data. Reads new `taxes` array or falls back to legacy single tax fields.
+  List<Map<String, dynamic>>? _parseTaxesFromData(Map<String, dynamic> data) {
+    final rawTaxes = data['taxes'];
+    if (rawTaxes is List && rawTaxes.isNotEmpty) {
+      return rawTaxes.map((t) => Map<String, dynamic>.from(t as Map)).toList();
+    }
+    return null; // Let CartItem handle legacy fields via taxName/taxPercentage
+  }
+
   void _showWeightInputDialog(String id, String name, double price, double cost, bool stockEnabled, double stock,
-      {String? taxName, double? taxPercentage, String? taxType}) {
+      {String? taxName, double? taxPercentage, String? taxType, List<Map<String, dynamic>>? taxes}) {
     final gramController = TextEditingController();
     final kgController = TextEditingController();
 
@@ -505,7 +520,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
               Navigator.pop(ctx);
               _addToCart(id, name, price, cost, stockEnabled, stock, finalQuantity,
-                  taxName: taxName, taxPercentage: taxPercentage, taxType: taxType);
+                  taxName: taxName, taxPercentage: taxPercentage, taxType: taxType, taxes: taxes);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: kPrimaryColor,
@@ -527,7 +542,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
   }
 
   void _addToCart(String id, String name, double price, double cost, bool stockEnabled, double stock, double quantity,
-      {String? taxName, double? taxPercentage, String? taxType}) {
+      {String? taxName, double? taxPercentage, String? taxType, List<Map<String, dynamic>>? taxes}) {
     final idx = _cart.indexWhere((item) => item.productId == id);
 
     if (idx != -1) {
@@ -553,6 +568,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
         price: price,
         cost: cost,
         quantity: quantity,
+        taxes: taxes,
         taxName: taxName,
         taxPercentage: taxPercentage,
         taxType: taxType,
@@ -612,6 +628,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
           : firestoreStock;
 
       if (price > 0) {
+        final taxes = _parseTaxesFromData(data);
         // Only show weight dialog for kg unit items
         if (unit.toLowerCase() == 'kg' || unit.toLowerCase() == 'kilogram') {
           _showWeightInputDialog(
@@ -624,6 +641,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             taxName: data['taxName'],
             taxPercentage: data['taxPercentage'],
             taxType: data['taxType'],
+            taxes: taxes,
           );
         } else {
           // For non-kg items, add directly with quantity 1
@@ -638,6 +656,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             taxName: data['taxName'],
             taxPercentage: data['taxPercentage'],
             taxType: data['taxType'],
+            taxes: taxes,
           );
         }
       }
@@ -1063,6 +1082,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             }
             if (price > 0) {
               final cost = (data['costPrice'] ?? 0.0).toDouble();
+              final taxes = _parseTaxesFromData(data);
               // Only show weight dialog for kg unit items
               if (unit.toLowerCase() == 'kg' || unit.toLowerCase() == 'kilogram') {
                 _showWeightInputDialog(
@@ -1075,6 +1095,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   taxName: data['taxName'],
                   taxPercentage: data['taxPercentage'],
                   taxType: data['taxType'],
+                  taxes: taxes,
                 );
               } else {
                 // For non-kg items, add directly with quantity 1
@@ -1089,6 +1110,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   taxName: data['taxName'],
                   taxPercentage: data['taxPercentage'],
                   taxType: data['taxType'],
+                  taxes: taxes,
                 );
               }
             }

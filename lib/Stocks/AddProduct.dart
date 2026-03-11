@@ -61,8 +61,7 @@ class _AddProductPageState extends State<AddProductPage> {
   // Tax State
   String _selectedTaxType = 'Add Tax at Billing';
   List<Map<String, dynamic>> _fetchedTaxes = [];
-  String? _selectedTaxId;
-  double _currentTaxPercentage = 0.0;
+  List<String> _selectedTaxIds = []; // Multiple tax selection
 
   @override
   void initState() {
@@ -103,9 +102,19 @@ class _AddProductPageState extends State<AddProductPage> {
             'percentage': (data['percentage'] ?? 0.0).toDouble(),
           };
         }).toList();
-        if (widget.existingData != null && widget.existingData!['taxId'] != null) {
-          _selectedTaxId = widget.existingData!['taxId'];
-          _currentTaxPercentage = (widget.existingData!['taxPercentage'] ?? 0.0).toDouble();
+        if (widget.existingData != null) {
+          // Load multiple taxes (new format)
+          final existingTaxes = widget.existingData!['taxes'];
+          if (existingTaxes is List && existingTaxes.isNotEmpty) {
+            _selectedTaxIds = existingTaxes
+                .map((t) => t['id']?.toString() ?? '')
+                .where((id) => id.isNotEmpty)
+                .toList();
+          }
+          // Fallback: load single tax (legacy format)
+          else if (widget.existingData!['taxId'] != null) {
+            _selectedTaxIds = [widget.existingData!['taxId'].toString()];
+          }
         }
       });
     } catch (e) { debugPrint('Error: $e'); }
@@ -121,7 +130,7 @@ class _AddProductPageState extends State<AddProductPage> {
       };
       final docRef = await FirebaseFirestore.instance.collection('store').doc(storeId).collection('taxes').add(newTaxDoc);
       await _fetchTaxesFromBackend();
-      setState(() { _selectedTaxId = docRef.id; _currentTaxPercentage = percentage; });
+      setState(() { _selectedTaxIds.add(docRef.id); });
     } catch (e) { debugPrint('Error: $e'); }
   }
 
@@ -1326,24 +1335,79 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Widget _buildTaxDropdown() {
-    return _wrapDropdown(
-      "Tax Rate (%)",
-      DropdownButton<String>(
-        value: _selectedTaxId,
-        hint: const Text("Select Rate"),
-        isExpanded: true,
-        isDense: true,
-        items: _fetchedTaxes.map((tax) {
-          return DropdownMenuItem<String>(value: tax['id'], child: Text("${tax['name']} (${tax['percentage']}%)"));
-        }).toList(),
-        onChanged: (val) {
-          setState(() {
-            _selectedTaxId = val;
-            _currentTaxPercentage = _fetchedTaxes.firstWhere((t) => t['id'] == val)['percentage'];
-          });
-        },
-      ),
-      onAdd: _showAddTaxDialog,
+    final selectedTaxes = _fetchedTaxes.where((t) => _selectedTaxIds.contains(t['id'])).toList();
+    final combinedPercentage = selectedTaxes.fold<double>(0.0, (sum, t) => sum + (t['percentage'] as double));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text("Tax Rates", style: TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w600)),
+            const Spacer(),
+            if (combinedPercentage > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Total: ${combinedPercentage.toStringAsFixed(1)}%',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kPrimaryColor),
+                ),
+              ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: _showAddTaxDialog,
+              child: const HeroIcon(HeroIcons.plusCircle, color: kPrimaryColor, size: 22),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (_fetchedTaxes.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(10)),
+            child: const Text('No taxes defined. Tap + to add.', style: TextStyle(color: kBlack54, fontSize: 12)),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _fetchedTaxes.map((tax) {
+              final isSelected = _selectedTaxIds.contains(tax['id']);
+              return FilterChip(
+                label: Text(
+                  "${tax['name']} (${(tax['percentage'] as double).toStringAsFixed(1)}%)",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isSelected ? kWhite : kBlack87,
+                  ),
+                ),
+                selected: isSelected,
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedTaxIds.add(tax['id']);
+                    } else {
+                      _selectedTaxIds.remove(tax['id']);
+                    }
+                  });
+                },
+                selectedColor: kPrimaryColor,
+                backgroundColor: kGreyBg,
+                checkmarkColor: kWhite,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(color: isSelected ? kPrimaryColor : kGrey200),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              );
+            }).toList(),
+          ),
+      ],
     );
   }
 
@@ -1631,22 +1695,21 @@ class _AddProductPageState extends State<AddProductPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
-    // Get tax name and percentage from the selected tax
-    String? taxName;
-    double? taxPercentage;
-    if (_selectedTaxId != null && _fetchedTaxes.isNotEmpty) {
-      final selectedTax = _fetchedTaxes.firstWhere(
-        (t) => t['id'] == _selectedTaxId,
-        orElse: () => {},
-      );
-      taxName = selectedTax['name'];
-      taxPercentage = selectedTax['percentage'];
-    }
+    // Build taxes array from selected tax IDs
+    final List<Map<String, dynamic>> selectedTaxes = _selectedTaxIds
+        .map((id) => _fetchedTaxes.firstWhere((t) => t['id'] == id, orElse: () => {}))
+        .where((t) => t.isNotEmpty)
+        .map((t) => {'id': t['id'], 'name': t['name'], 'percentage': t['percentage']})
+        .toList();
+
+    // Backward-compatible single tax fields (combined values)
+    final String combinedTaxName = selectedTaxes.map((t) => t['name']).join(' + ');
+    final double combinedTaxPercentage = selectedTaxes.fold<double>(0.0, (sum, t) => sum + ((t['percentage'] ?? 0.0) as num).toDouble());
+    final String? firstTaxId = selectedTaxes.isNotEmpty ? selectedTaxes.first['id'] : null;
 
     final pData = {
       'itemName': _itemNameController.text.trim(),
       'price': double.tryParse(_priceController.text) ?? 0.0,
-      // Ensure costPrice is always a number; default to 0.0 when empty
       'costPrice': double.tryParse(_costPriceController.text) ?? 0.0,
       'mrp': double.tryParse(_mrpController.text) ?? 0.0,
       'category': _selectedCategory ?? 'General',
@@ -1658,10 +1721,13 @@ class _AddProductPageState extends State<AddProductPage> {
       'hsn': _hsnController.text.trim(),
       'barcode': _barcodeController.text.trim(),
       'stockUnit': _selectedStockUnit ?? 'Piece',
-      'taxId': _selectedTaxId,
+      // NEW: Multiple taxes array
+      'taxes': selectedTaxes,
+      // LEGACY: Keep single-tax fields for backward compatibility
+      'taxId': firstTaxId,
       'taxType': _selectedTaxType,
-      'taxName': taxName ?? 'GST',
-      'taxPercentage': taxPercentage ?? 0.0,
+      'taxName': combinedTaxName.isEmpty ? 'GST' : combinedTaxName,
+      'taxPercentage': combinedTaxPercentage,
       'location': _locationController.text.trim(),
       'expiryDate': _selectedExpiryDate?.toIso8601String(),
       'isFavorite': _isFavorite,

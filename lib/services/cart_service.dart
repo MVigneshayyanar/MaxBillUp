@@ -85,16 +85,23 @@ class CartService extends ChangeNotifier {
     final items = orderData['items'] as List<dynamic>?;
     if (items != null && items.isNotEmpty) {
       _cartItems = items
-          .map((item) => CartItem(
+          .map((item) {
+            List<Map<String, dynamic>>? itemTaxes;
+            if (item['taxes'] is List && (item['taxes'] as List).isNotEmpty) {
+              itemTaxes = (item['taxes'] as List).map((t) => Map<String, dynamic>.from(t as Map)).toList();
+            }
+            return CartItem(
                 productId: item['productId'] ?? '',
                 name: item['name'] ?? '',
                 price: (item['price'] ?? 0.0).toDouble(),
                 cost: (item['cost'] ?? 0.0).toDouble(),
                 quantity: (item['quantity'] ?? 1).toDouble(),
+                taxes: itemTaxes,
                 taxName: item['taxName'],
                 taxPercentage: item['taxPercentage']?.toDouble(),
                 taxType: item['taxType'],
-              ))
+              );
+          })
           .toList();
     }
     _savedOrderId = orderId;
