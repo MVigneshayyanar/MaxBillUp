@@ -9,7 +9,7 @@ import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Sales/nq.dart' as maxbillup_nq;
 
-class QuotationDetailPage extends StatelessWidget {
+class QuotationDetailPage extends StatefulWidget {
   final String uid;
   final String? userEmail;
   final String quotationId;
@@ -24,6 +24,19 @@ class QuotationDetailPage extends StatelessWidget {
     required this.quotationData,
     this.currencySymbol = '',
   });
+
+  @override
+  State<QuotationDetailPage> createState() => _QuotationDetailPageState();
+}
+
+class _QuotationDetailPageState extends State<QuotationDetailPage> {
+  bool _isProcessing = false; // Prevents double-click on Convert/Delete buttons
+
+  String get uid => widget.uid;
+  String? get userEmail => widget.userEmail;
+  String get quotationId => widget.quotationId;
+  Map<String, dynamic> get quotationData => widget.quotationData;
+  String get currencySymbol => widget.currencySymbol;
 
   @override
   Widget build(BuildContext context) {
@@ -184,13 +197,19 @@ class QuotationDetailPage extends StatelessWidget {
                             child: SizedBox(
                               height: 52,
                               child: ElevatedButton(
-                                onPressed: () => _generateInvoice(context),
+                                onPressed: _isProcessing ? null : () => _generateInvoice(context),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: kPrimaryColor,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                   elevation: 0,
+                                  disabledBackgroundColor: kPrimaryColor.withOpacity(0.6),
                                 ),
-                                child: const Text('CONVERT TO INVOICE', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kWhite, letterSpacing: 0.5)),
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: _isProcessing
+                                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2))
+                                      : const Text('CONVERT TO INVOICE', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kWhite, letterSpacing: 0.5)),
+                                ),
                               ),
                             ),
                           ),
@@ -260,6 +279,9 @@ class QuotationDetailPage extends StatelessWidget {
   }
 
   void _generateInvoice(BuildContext context) async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+
     final items = quotationData['items'] as List<dynamic>? ?? [];
     final cartItems = items.map((item) => CartItem(
       productId: item['productId'] ?? '', name: item['name'] ?? '',
@@ -269,18 +291,22 @@ class QuotationDetailPage extends StatelessWidget {
     final total = (quotationData['total'] ?? 0.0).toDouble();
     final discount = (quotationData['discount'] ?? 0.0).toDouble();
 
-    final result = await Navigator.push(
-      context, CupertinoPageRoute(builder: (context) => BillPage(
-      uid: uid, userEmail: userEmail, cartItems: cartItems, totalAmount: total,
-      discountAmount: discount, customerPhone: quotationData['customerPhone'],
-      customerName: quotationData['customerName'], customerGST: quotationData['customerGST'],
-      quotationId: quotationId,
-    )),
-    );
+    try {
+      final result = await Navigator.push(
+        context, CupertinoPageRoute(builder: (context) => BillPage(
+        uid: uid, userEmail: userEmail, cartItems: cartItems, totalAmount: total,
+        discountAmount: discount, customerPhone: quotationData['customerPhone'],
+        customerName: quotationData['customerName'], customerGST: quotationData['customerGST'],
+        quotationId: quotationId,
+      )),
+      );
 
-    if (result == true) {
-      await FirestoreService().updateDocument('quotations', quotationId, {'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()});
-      if (context.mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order Finalized Successfully'))); Navigator.pop(context); }
+      if (result == true) {
+        await FirestoreService().updateDocument('quotations', quotationId, {'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()});
+        if (context.mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order Finalized Successfully'))); Navigator.pop(context); }
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 

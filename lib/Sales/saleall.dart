@@ -774,7 +774,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
   Widget _buildHeader(double w) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       decoration: const BoxDecoration(
         color: kWhite,
         border: Border(bottom: BorderSide(color: kGrey200)),

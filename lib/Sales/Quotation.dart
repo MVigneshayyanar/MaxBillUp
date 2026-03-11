@@ -46,6 +46,7 @@ class _QuotationPageState extends State<QuotationPage> {
   String? _selectedCustomerGST;
 
   bool _isBillWise = true;
+  bool _isProcessing = false; // Prevents double-click on generate button
 
   // Bill Wise state
   double _cashDiscountAmount = 0.0;
@@ -194,6 +195,8 @@ class _QuotationPageState extends State<QuotationPage> {
   }
 
   Future<void> _generateQuotation() async {
+    if (_isProcessing) return; // Prevent double-click
+    setState(() => _isProcessing = true);
     try {
       // 1. Show Loading Indicator
       showDialog(
@@ -361,6 +364,8 @@ class _QuotationPageState extends State<QuotationPage> {
             )
         );
       }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -568,9 +573,14 @@ class _QuotationPageState extends State<QuotationPage> {
           SizedBox(
             width: double.infinity, height: R.sp(context, 54),
             child: ElevatedButton(
-              onPressed: _generateQuotation,
-              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: R.radius(context, 12)), elevation: 0),
-              child: Text(widget.editQuotationId != null ? 'UPDATE QUOTATION' : 'GENERATE QUOTATION', style: TextStyle(color: kWhite, fontSize: R.sp(context, 15), fontWeight: FontWeight.w700)),
+              onPressed: _isProcessing ? null : _generateQuotation,
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: R.radius(context, 12)), elevation: 0, disabledBackgroundColor: kPrimaryColor.withOpacity(0.6)),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _isProcessing
+                    ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2.5))
+                    : Text(widget.editQuotationId != null ? 'UPDATE QUOTATION' : 'GENERATE QUOTATION', style: TextStyle(color: kWhite, fontSize: R.sp(context, 15), fontWeight: FontWeight.w700)),
+              ),
             ),
           ),
         ],

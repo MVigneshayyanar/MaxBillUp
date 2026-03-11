@@ -1944,7 +1944,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                 final price = (item['price'] ?? 0.0).toDouble();
                 final total = (item['total'] ?? 0.0).toDouble();
                 return Container(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey300, width: 0.5))),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2486,6 +2486,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
           bytes.addAll(enc(line));
           bytes.add(lf);
         }
+        // Add spacing between items
+        bytes.add(lf);
       }
 
       // Subtotal — align qty under the Qty column, amount under Amt column

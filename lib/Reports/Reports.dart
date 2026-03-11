@@ -9017,38 +9017,21 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
                                   _buildExpCategoryCard(sortedCategories, expenseCount, totalAmount),
                                   const SizedBox(height: 20),
 
-                                  _buildExpSectionLabel("EXPENSE BY CATEGORY"),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      _buildExpSectionLabel("EXPENSE BY CATEGORY"),
+                                      _buildExpCombinedToggle(),
+                                    ],
+                                  ),
                                   const SizedBox(height: 8),
-                                  _buildExpCombinedToggle(),
-                                  const SizedBox(height: 8),
+                                  _buildExpNameTable(sortedNameEntries, totalAmount),
+                                  const SizedBox(height: 20),
                                 ]),
                               ),
                             ),
 
-                            // ── Expense Name Table ──
-                            if (sortedNameEntries.isEmpty)
-                              SliverToBoxAdapter(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 36),
-                                  child: Column(
-                                    children: [
-                                      Icon(Icons.inbox_rounded, size: 42, color: kTextSecondary.withValues(alpha: 0.2)),
-                                      const SizedBox(height: 8),
-                                      const Text("No expenses for this period", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kTextSecondary)),
-                                    ],
-                                  ),
-                                ),
-                              )
-                            else
-                              SliverPadding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                sliver: SliverList(
-                                  delegate: SliverChildBuilderDelegate(
-                                        (context, i) => _buildExpNameRow(sortedNameEntries[i], totalAmount, i),
-                                    childCount: sortedNameEntries.length,
-                                  ),
-                                ),
-                              ),
+                            // ── Expense Name Table entries already shown above ──
 
                             SliverPadding(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -9391,11 +9374,126 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(_showCombinedCategory ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded, size: 16, color: _showCombinedCategory ? kPrimaryColor : kTextSecondary),
               const SizedBox(width: 6),
-              Text("Show Combined Category", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _showCombinedCategory ? kPrimaryColor : kTextSecondary)),
+              Text("Group by Category", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _showCombinedCategory ? kPrimaryColor : kTextSecondary)),
             ]),
           ),
         ),
       ],
+    );
+  }
+
+  // ─── Expense Name Table (Table Format) ───
+  Widget _buildExpNameTable(List<MapEntry<String, Map<String, dynamic>>> entries, double total) {
+    if (entries.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 36),
+        decoration: BoxDecoration(
+          color: kSurfaceColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.inbox_rounded, size: 42, color: kTextSecondary.withValues(alpha: 0.2)),
+            const SizedBox(height: 8),
+            const Text("No expenses for this period", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kTextSecondary)),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          // Table Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: kBorderColor.withValues(alpha: 0.3),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            ),
+            child: const Row(
+              children: [
+                Expanded(flex: 4, child: Text("Name", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Category", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kTextSecondary, letterSpacing: 0.5))),
+                SizedBox(width: 30, child: Text("Qty", textAlign: TextAlign.center, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Amount", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kTextSecondary, letterSpacing: 0.5))),
+                SizedBox(width: 40, child: Text("%", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kTextSecondary, letterSpacing: 0.5))),
+              ],
+            ),
+          ),
+          // Table Rows
+          ...entries.asMap().entries.map((e) {
+            final idx = e.key;
+            final entry = e.value;
+            final name = entry.key;
+            final double amt = entry.value['amount'] as double;
+            final int count = entry.value['count'] as int;
+            final String category = entry.value['category'] as String;
+            final double pct = total > 0 ? (amt / total * 100) : 0.0;
+            final Color rowColor = kChartColorsList[idx % kChartColorsList.length];
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: kBorderColor.withValues(alpha: 0.3))),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 4,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6, height: 6,
+                          decoration: BoxDecoration(color: rowColor, borderRadius: BorderRadius.circular(2)),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(name, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kTextPrimary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(category, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: kTextSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                  SizedBox(width: 30, child: Text("$count", textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kTextSecondary))),
+                  Expanded(
+                    flex: 2,
+                    child: Text("$_currencySymbol${amt.toStringAsFixed(1)}", textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kExpenseRed)),
+                  ),
+                  SizedBox(
+                    width: 40,
+                    child: Text("${pct.toStringAsFixed(1)}%", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: rowColor)),
+                  ),
+                ],
+              ),
+            );
+          }),
+          // Total Footer
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: kExpenseRed.withValues(alpha: 0.06),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+            ),
+            child: Row(
+              children: [
+                const Expanded(flex: 4, child: Text("Total", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kExpenseRed))),
+                const Expanded(flex: 2, child: SizedBox()),
+                SizedBox(width: 30, child: Text("${entries.fold<int>(0, (s, e) => s + (e.value['count'] as int))}", textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kExpenseRed))),
+                Expanded(flex: 2, child: Text("$_currencySymbol${total.toStringAsFixed(1)}", textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kExpenseRed))),
+                const SizedBox(width: 40, child: Text("100%", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kExpenseRed))),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

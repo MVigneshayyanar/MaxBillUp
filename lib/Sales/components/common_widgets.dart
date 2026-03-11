@@ -76,44 +76,11 @@ class CommonWidgets {
 
             const Spacer(),
 
-            // Main Bill button (Premium UI Upgrade)
-            GestureDetector(
-              onTap: onBill,
-              child: Container(
-                height: 60,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  color: kPrimaryColor,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: kPrimaryColor.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const HeroIcon(HeroIcons.banknotes, color: kWhite, size: 18),
-                    const SizedBox(width: 10),
-                    Text(
-                      "$currencySymbol${AmountFormatter.format(totalBill)}",
-                      style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(width: 10),
-                    Container(width: 1.5, height: 20, color: kWhite.withOpacity(0.3)),
-                    const SizedBox(width: 10),
-                    Text(
-                      context.tr('Bill'),
-                      style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.0),
-                    ),
-                    // const SizedBox(width: 10),
-
-                  ],
-                ),
-              ),
+            // Main Bill button (Premium UI Upgrade) — debounce-protected
+            _DebouncedBillButton(
+              onBill: onBill,
+              totalBill: totalBill,
+              currencySymbol: currencySymbol,
             ),
           ],
         ),
@@ -870,6 +837,118 @@ class CommonWidgets {
               child: Text(customerExists ? 'UPDATE' : 'CONFIRM', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Stateful Bill button with tap animation and debounce protection.
+/// Prevents double-clicks that cause duplicate backend writes.
+class _DebouncedBillButton extends StatefulWidget {
+  final VoidCallback onBill;
+  final double totalBill;
+  final String currencySymbol;
+
+  const _DebouncedBillButton({
+    required this.onBill,
+    required this.totalBill,
+    required this.currencySymbol,
+  });
+
+  @override
+  State<_DebouncedBillButton> createState() => _DebouncedBillButtonState();
+}
+
+class _DebouncedBillButtonState extends State<_DebouncedBillButton>
+    with SingleTickerProviderStateMixin {
+  bool _tapped = false;
+  late AnimationController _animController;
+  late Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+    );
+    _scaleAnim = Tween<double>(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    if (_tapped) return; // Block double-tap
+    setState(() => _tapped = true);
+
+    _animController.forward().then((_) => _animController.reverse());
+
+    widget.onBill();
+
+    // Re-enable after 1.5s (enough time for navigation to complete)
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) setState(() => _tapped = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scaleAnim,
+      child: GestureDetector(
+        onTap: _handleTap,
+        child: AnimatedOpacity(
+          opacity: _tapped ? 0.7 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            height: 60,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              color: kPrimaryColor,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: kPrimaryColor.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _tapped
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          color: kWhite,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const HeroIcon(HeroIcons.banknotes, color: kWhite, size: 18),
+                const SizedBox(width: 10),
+                Text(
+                  "${widget.currencySymbol}${AmountFormatter.format(widget.totalBill)}",
+                  style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(width: 10),
+                Container(width: 1.5, height: 20, color: kWhite.withOpacity(0.3)),
+                const SizedBox(width: 10),
+                Text(
+                  context.tr('Bill'),
+                  style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -3683,6 +3683,7 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
   final TextEditingController _amountController = TextEditingController();
   double _amt = 0.0;
   String _currencySymbol = '';
+  bool _isSaving = false; // Prevents double-click
 
   @override
   void initState() {
@@ -3761,16 +3762,25 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
             SafeArea(
               top: false,
               child: SizedBox(width: double.infinity, height: 60, child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                onPressed: () async {
-                  if (_amt <= 0) return;
-                  final cCol = await FirestoreService().getStoreCollection('customers');
-                  final crCol = await FirestoreService().getStoreCollection('credits');
-                  await cCol.doc(widget.customerId).update({'balance': widget.currentBalance - _amt});
-                  await crCol.add({'customerId': widget.customerId, 'customerName': widget.customerData['name'], 'amount': _amt, 'type': 'payment_received', 'method': 'Cash', 'timestamp': FieldValue.serverTimestamp()});
-                  if (mounted) Navigator.pop(context);
+                style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), disabledBackgroundColor: kPrimaryColor.withOpacity(0.6)),
+                onPressed: (_amt <= 0 || _isSaving) ? null : () async {
+                  setState(() => _isSaving = true);
+                  try {
+                    final cCol = await FirestoreService().getStoreCollection('customers');
+                    final crCol = await FirestoreService().getStoreCollection('credits');
+                    await cCol.doc(widget.customerId).update({'balance': widget.currentBalance - _amt});
+                    await crCol.add({'customerId': widget.customerId, 'customerName': widget.customerData['name'], 'amount': _amt, 'type': 'payment_received', 'method': 'Cash', 'timestamp': FieldValue.serverTimestamp()});
+                    if (mounted) Navigator.pop(context);
+                  } catch (e) {
+                    if (mounted) setState(() => _isSaving = false);
+                  }
                 },
-                child: const Text("Save payment", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: _isSaving
+                      ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2.5))
+                      : const Text("Save payment", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
+                ),
               )),
             ),
           ],

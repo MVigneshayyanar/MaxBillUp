@@ -533,9 +533,9 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
 
     _maxCartHeight = screenHeight - topPadding - 180;
 
-    final double dynamicCartHeight = _isSearchFocused ? 115 : _cartHeight;
+    final double dynamicCartHeight = _isSearchFocused ? 150 : _cartHeight;
     final bool shouldShowCart = _sharedCartItems != null && _sharedCartItems!.isNotEmpty;
-    final double reservedCartSpace = shouldShowCart ? (_isSearchFocused ? 100 : _minCartHeight) : 0;
+    final double reservedCartSpace = shouldShowCart ? (_isSearchFocused ? 150 : _minCartHeight) : 0;
 
     return Scaffold(
       backgroundColor: kWhite, // Changed from kGreyBg to kWhite
@@ -752,23 +752,23 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
         decoration: BoxDecoration(
           color: kWhite,
           borderRadius: R.radius(context, 20),
-          border: Border.all(color: Color(0xffffab36), width: 2),
+          border: Border.all(color: Color(0xFFE0B646), width: 2),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8))],
         ),
         child: Column(
           children: [
             Container(
-              padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: isSearchFocused ? R.sp(context, 8) : R.sp(context, 12)),
+              padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: isSearchFocused ? 6 : R.sp(context, 12)),
               decoration: BoxDecoration(
-                color: Color(0xffffab36),
+                color: Color(0xFFE0B646),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(R.sp(context, 18))),
               ),
               child: Row(
                 children: [
-                  Expanded(flex: 4, child: Text(context.tr('Product'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 13), color: kBlack87, letterSpacing: 0.5))),
-                  Expanded(flex: 2, child: Text(context.tr('QTY'), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 13), color: kBlack87, letterSpacing: 0.5))),
-                  Expanded(flex: 2, child: Text(context.tr('Price'), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 13), color: kBlack87, letterSpacing: 0.5))),
-                  Expanded(flex: 2, child: Text(context.tr('Total'), textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 13), color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 4, child: Text(context.tr('Product'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('QTY'), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('Price'), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('Total'), textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: kBlack87, letterSpacing: 0.5))),
                 ],
               ),
             ),
@@ -788,7 +788,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                         onTap: () => _showEditCartItemDialog(idx),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 400),
-                          padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: isSearchFocused ? R.sp(context, 6) : R.sp(context, 10)),
+                          padding: EdgeInsets.symmetric(horizontal: isSearchFocused ? 16 : R.sp(context, 16), vertical: isSearchFocused ? 4 : R.sp(context, 8)),
                           decoration: BoxDecoration(
                             color: isHighlighted ? _highlightAnimation!.value : Colors.transparent,
                           ),
@@ -817,7 +817,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
               ),
             ),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: isSearchFocused ? R.sp(context, 6) : R.sp(context, 10)),
+              padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: isSearchFocused ? 4 : R.sp(context, 8)),
               decoration: BoxDecoration(
                 color: kPrimaryColor.withOpacity(0.03),
                 borderRadius: BorderRadius.vertical(bottom: Radius.circular(R.sp(context, 18))),

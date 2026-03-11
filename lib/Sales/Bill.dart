@@ -1660,17 +1660,17 @@ class _BillPageState extends State<BillPage> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _buildPayIcon(HeroIcons.banknotes, 'Cash', () { Navigator.pop(ctx); _proceedToPayment('Cash'); }),
+                  _buildPayIcon(HeroIcons.banknotes, 'Cash', 'Pay with cash', () { Navigator.pop(ctx); _proceedToPayment('Cash'); }),
                   const SizedBox(width: 16),
-                  _buildPayIcon(HeroIcons.qrCode, 'Online', () { Navigator.pop(ctx); _proceedToPayment('Online'); }),
+                  _buildPayIcon(HeroIcons.qrCode, 'Online', 'UPI / Card / Net banking', () { Navigator.pop(ctx); _proceedToPayment('Online'); }),
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _buildPayIcon(HeroIcons.bookOpen, 'Credit', () { Navigator.pop(ctx); _proceedToPayment('Credit'); }),
+                  _buildPayIcon(HeroIcons.bookOpen, 'Credit', 'Pay later', () { Navigator.pop(ctx); _proceedToPayment('Credit'); }),
                   const SizedBox(width: 16),
-                  _buildPayIcon(HeroIcons.arrowsRightLeft, 'Split', () { Navigator.pop(ctx); _proceedToPayment('Split'); }),
+                  _buildPayIcon(HeroIcons.arrowsRightLeft, 'Split', 'Multiple methods', () { Navigator.pop(ctx); _proceedToPayment('Split'); }),
                 ],
               ),
             ],
@@ -1724,7 +1724,7 @@ class _BillPageState extends State<BillPage> {
   }
 
 
-  Widget _buildPayIcon(HeroIcons icon, String label, VoidCallback onTap) {
+  Widget _buildPayIcon(HeroIcons icon, String label, String subtitle, VoidCallback onTap) {
     // Define colors: Cash=green, Online=blue, Credit=orange, Split=purple
     Color themeColor;
     if (label == 'Cash') {
@@ -1749,7 +1749,7 @@ class _BillPageState extends State<BillPage> {
               aspectRatio: 1.0, // Make it a perfect square
               child: Container(
                 decoration: BoxDecoration(
-                  color: themeColor.withOpacity(0.15),
+                  color: kGreyBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: themeColor.withOpacity(0.15), width: 1.5),
                 ),
@@ -1776,6 +1776,16 @@ class _BillPageState extends State<BillPage> {
                         color: themeColor,
                         letterSpacing: 0.3,
                       ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: kBlack54,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
@@ -2588,12 +2598,16 @@ class _PaymentPageState extends State<PaymentPage> {
                           shadowColor: Colors.transparent,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: _isProcessing
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: _isProcessing
                             ? const SizedBox(
+                                key: ValueKey('loading'),
                                 width: 26, height: 26,
                                 child: CircularProgressIndicator(color: kWhite, strokeWidth: 2.5),
                               )
                             : Row(
+                                key: const ValueKey('content'),
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(canPay ? (widget.unsettledSaleId != null ? 'UPDATE' : 'CONFIRM PAYMENT') : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
@@ -2606,6 +2620,7 @@ class _PaymentPageState extends State<PaymentPage> {
                               ),
                             ]
                           ],
+                        ),
                         ),
                       ),
                     ),
@@ -3339,12 +3354,16 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                 shadowColor: Colors.transparent,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: _isProcessing
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _isProcessing
                   ? const SizedBox(
+                      key: ValueKey('loading'),
                       width: 26, height: 26,
                       child: CircularProgressIndicator(color: kWhite, strokeWidth: 2.5),
                     )
                   : Row(
+                      key: const ValueKey('content'),
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(canPay ? (isEditMode ? 'UPDATE' : 'CONFIRM PAYMENT') : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
@@ -3357,6 +3376,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                     ),
                   ]
                 ],
+              ),
               ),
             ),
           ),

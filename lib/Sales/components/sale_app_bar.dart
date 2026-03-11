@@ -47,7 +47,7 @@ class SaleAppBar extends StatelessWidget {
 
     return Container(
       color: kWhite,
-      padding: EdgeInsets.fromLTRB(horizontalPadding, 0, R.sp(context, 16), 0),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 0, R.sp(context, 16), 8),
       child: Row(
         children: [
           if (showBackButton) ...[
