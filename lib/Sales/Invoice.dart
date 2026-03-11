@@ -1514,7 +1514,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                               flex: 2,
                               child: Padding(
                                 padding: hp(6, 8),
-                                child: Text('TOTAL', style: TextStyle(fontSize: fs(10), fontWeight: FontWeight.w800, color: Colors.white), textAlign: TextAlign.right),
+                                child: Text('AMOUNT', style: TextStyle(fontSize: fs(10), fontWeight: FontWeight.w800, color: Colors.white), textAlign: TextAlign.right),
                               ),
                             ),
                           ],
@@ -1533,10 +1533,20 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                             final name = (item['name'] ?? 'Item') as String;
                             final qty = item['quantity'] ?? 1;
                             final rate = (item['price'] ?? item['rate'] ?? 0.0).toDouble();
-                            final total = (item['total'] ?? (rate * (qty is num ? qty : 1))).toDouble();
                             final taxPerc = (item['taxPercentage'] ?? 0).toDouble();
                             final taxName = (item['taxName'] ?? '') as String;
-                            final taxAmt = taxPerc > 0 ? (total - (total / (1 + taxPerc / 100))) : 0.0;
+                            final taxAmt = (item['taxAmount'] ?? 0.0).toDouble();
+                            final taxType = item['taxType'] as String?;
+                            final baseTotal = rate * (qty is num ? qty.toDouble() : 1.0);
+                            // Compute amount respecting tax type
+                            final double amount;
+                            if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
+                              amount = baseTotal; // price already has tax
+                            } else if (taxType != null) {
+                              amount = baseTotal + taxAmt; // add tax for 'Add Tax at Billing' etc.
+                            } else {
+                              amount = (item['total'] ?? baseTotal).toDouble(); // fresh sale: total is already totalWithTax
+                            }
                             // Subtle alternating: white vs very-light-grey (no theme tint)
                             final rowBg = idx.isEven ? Colors.white : const Color(0xFFF9FAFB);
                             return Container(
@@ -1573,7 +1583,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                                     flex: 2,
                                     child: Padding(
                                       padding: hp(4, 8),
-                                      child: Text('$currency${rate.toStringAsFixed(2)}', style: TextStyle(fontSize: fs(11), color: kBlack87), textAlign: TextAlign.right),
+                                      child: Text(rate.toStringAsFixed(2), style: TextStyle(fontSize: fs(11), color: kBlack87), textAlign: TextAlign.right),
                                     ),
                                   ),
                                   if (_a4ShowTaxColumn)
@@ -1581,11 +1591,16 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                                       flex: 2,
                                       child: Padding(
                                         padding: hp(4, 8),
-                                        child: Text(
-                                          taxPerc > 0 ? '$currency${taxAmt.toStringAsFixed(2)}' : '-',
-                                          style: TextStyle(fontSize: fs(11), color: kBlack54),
-                                          textAlign: TextAlign.right,
-                                        ),
+                                        child: taxPerc > 0
+                                            ? Column(
+                                                crossAxisAlignment: CrossAxisAlignment.end,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(taxAmt.toStringAsFixed(2), style: TextStyle(fontSize: fs(11), color: kBlack87), textAlign: TextAlign.right),
+                                                  Text('(${taxPerc.toStringAsFixed(0)}%)', style: TextStyle(fontSize: fs(8), color: kBlack54), textAlign: TextAlign.right),
+                                                ],
+                                              )
+                                            : Text('-', style: TextStyle(fontSize: fs(11), color: kBlack54), textAlign: TextAlign.right),
                                       ),
                                     ),
                                   Expanded(
@@ -1593,7 +1608,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                                     child: Padding(
                                       padding: hp(6, 8),
                                       // Keep theme colour on total amount — matches reference image
-                                      child: Text('$currency${total.toStringAsFixed(2)}', style: TextStyle(fontSize: fs(11), fontWeight: FontWeight.w800, color: themeColor), textAlign: TextAlign.right),
+                                      child: Text(amount.toStringAsFixed(2), style: TextStyle(fontSize: fs(11), fontWeight: FontWeight.w800, color: themeColor), textAlign: TextAlign.right),
                                     ),
                                   ),
                                 ],
@@ -1942,7 +1957,18 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                 final name = item['name'] ?? 'Item';
                 final qty = item['quantity'] ?? 1;
                 final price = (item['price'] ?? 0.0).toDouble();
-                final total = (item['total'] ?? 0.0).toDouble();
+                final taxAmt = (item['taxAmount'] ?? 0.0).toDouble();
+                final taxType = item['taxType'] as String?;
+                final baseTotal = price * (qty is num ? qty.toDouble() : 1.0);
+                // Compute amount respecting tax type
+                final double amount;
+                if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
+                  amount = baseTotal; // price already has tax
+                } else if (taxType != null) {
+                  amount = baseTotal + taxAmt; // add tax for 'Add Tax at Billing' etc.
+                } else {
+                  amount = (item['total'] ?? baseTotal).toDouble(); // fresh sale: total is already totalWithTax
+                }
                 return Container(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey300, width: 0.5))),
@@ -1960,7 +1986,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                       ),
                       SizedBox(width: 32, child: Text('$qty', style: tStyle(size: 9), textAlign: TextAlign.center)),
                       Expanded(flex: 2, child: Text(price.toStringAsFixed(2), style: tStyle(size: 9), textAlign: TextAlign.right)),
-                      Expanded(flex: 2, child: Text(total.toStringAsFixed(2), style: tStyle(size: 9), textAlign: TextAlign.right)),
+                      Expanded(flex: 2, child: Text(amount.toStringAsFixed(2), style: tStyle(size: 9), textAlign: TextAlign.right)),
                     ],
                   ),
                 );
@@ -2476,12 +2502,23 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         final name = (item['name'] ?? 'Item') as String;
         final qty = item['quantity'] ?? 1;
         final price = (item['price'] ?? 0.0).toDouble();
-        final total = (item['total'] ?? 0.0).toDouble();
+        final taxAmt = (item['taxAmount'] ?? 0.0).toDouble();
+        final taxType = item['taxType'] as String?;
+        final baseTotal = price * (qty is num ? qty.toDouble() : 1.0);
+        // Compute amount respecting tax type
+        final double amount;
+        if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
+          amount = baseTotal; // price already has tax
+        } else if (taxType != null) {
+          amount = baseTotal + taxAmt; // add tax for 'Add Tax at Billing' etc.
+        } else {
+          amount = (item['total'] ?? baseTotal).toDouble(); // fresh sale: total is already totalWithTax
+        }
 
         totalQty += (qty is int ? qty : (qty as num).toInt());
 
         // No currency in table columns; no tax sub-line
-        List<String> itemLines = _formatTableRowMultiLine(name, '$qty', price.toStringAsFixed(2), total.toStringAsFixed(2), lineWidth);
+        List<String> itemLines = _formatTableRowMultiLine(name, '$qty', price.toStringAsFixed(2), amount.toStringAsFixed(2), lineWidth);
         for (String line in itemLines) {
           bytes.addAll(enc(line));
           bytes.add(lf);
@@ -3119,10 +3156,20 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                         final name = (item['name'] ?? 'Item') as String;
                         final qty = item['quantity'] ?? 1;
                         final price = (item['price'] ?? 0.0).toDouble();
-                        final total = (item['total'] ?? 0.0).toDouble();
                         final taxPerc = (item['taxPercentage'] ?? 0).toDouble();
                         final taxName = (item['taxName'] ?? '') as String;
-                        final taxAmt = (item['taxAmount'] ?? (taxPerc > 0 ? (total - (total / (1 + taxPerc / 100))) : 0.0)).toDouble();
+                        final taxAmt = (item['taxAmount'] ?? 0.0).toDouble();
+                        final taxType = item['taxType'] as String?;
+                        final baseTotal = price * (qty is num ? qty.toDouble() : 1.0);
+                        // Compute amount respecting tax type
+                        final double amount;
+                        if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
+                          amount = baseTotal; // price already has tax
+                        } else if (taxType != null) {
+                          amount = baseTotal + taxAmt; // add tax for 'Add Tax at Billing' etc.
+                        } else {
+                          amount = (item['total'] ?? baseTotal).toDouble(); // fresh sale: total is already totalWithTax
+                        }
                         final isEven = idx.isEven;
                         final rowBg = isEven ? PdfColors.white : const PdfColor.fromInt(0xFFF9FAFB);
                         return pw.TableRow(
@@ -3143,13 +3190,21 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                               qty is double && qty % 1 != 0 ? qty.toStringAsFixed(2) : '$qty',
                               ttf, align: pw.TextAlign.center, isEven: isEven,
                             ),
-                            _pdfCell('$currency${price.toStringAsFixed(2)}', ttf, align: pw.TextAlign.right, isEven: isEven),
+                            _pdfCell(price.toStringAsFixed(2), ttf, align: pw.TextAlign.right, isEven: isEven),
                             if (_a4ShowTaxColumn)
-                              _pdfCell(
-                                taxPerc > 0 ? '$currency${taxAmt.toStringAsFixed(2)}' : '-',
-                                ttf, align: pw.TextAlign.right, isEven: isEven,
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                                child: taxPerc > 0
+                                    ? pw.Column(
+                                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                                        children: [
+                                          pw.Text(taxAmt.toStringAsFixed(2), style: pw.TextStyle(font: ttf, fontSize: 10)),
+                                          pw.Text('(${taxPerc.toStringAsFixed(0)}%)', style: pw.TextStyle(font: ttf, fontSize: 7, color: PdfColors.grey600)),
+                                        ],
+                                      )
+                                    : pw.Text('-', textAlign: pw.TextAlign.right, style: pw.TextStyle(font: ttf, fontSize: 10, color: PdfColors.grey600)),
                               ),
-                            _pdfCell('$currency${total.toStringAsFixed(2)}', ttfBold, align: pw.TextAlign.right, isEven: isEven, bold: true, color: themeColor),
+                            _pdfCell(amount.toStringAsFixed(2), ttfBold, align: pw.TextAlign.right, isEven: isEven, bold: true, color: themeColor),
                           ],
                         );
                       }),

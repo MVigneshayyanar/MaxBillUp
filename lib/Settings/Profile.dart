@@ -2542,6 +2542,9 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
                         TextField(
                           controller: prefixCtrl,
                           textCapitalization: TextCapitalization.characters,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                          ],
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                           decoration: InputDecoration(
                             hintText: 'DD',
@@ -2568,6 +2571,9 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
                         TextField(
                           controller: numberCtrl,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                           decoration: InputDecoration(
                             hintText: '505',
@@ -3731,11 +3737,11 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
 
                 // Document Prefixes
                 _buildSettingsSection("Document Prefixes", [
-                  _buildPrefixField(_invoicePrefixCtrl, "Invoice Prefix", "e.g. INV-", Icons.receipt_long_rounded, kPrimaryColor),
-                  _buildPrefixField(_quotationPrefixCtrl, "Quotation Prefix", "e.g. QT-", Icons.request_quote_rounded, Colors.orange),
-                  _buildPrefixField(_purchasePrefixCtrl, "Purchase Prefix", "e.g. PO-", Icons.shopping_cart_rounded, Colors.green),
-                  _buildPrefixField(_expensePrefixCtrl, "Expense Prefix", "e.g. EXP-", Icons.account_balance_wallet_rounded, Colors.purple),
-                  _buildPrefixField(_receiptPrefixCtrl, "Payment Receipt Prefix", "e.g. PR-", Icons.payment_rounded, Colors.teal),
+                  _buildPrefixField(_invoicePrefixCtrl, "Invoice Prefix", "e.g. INV", Icons.receipt_long_rounded, kPrimaryColor),
+                  _buildPrefixField(_quotationPrefixCtrl, "Quotation Prefix", "e.g. QT", Icons.request_quote_rounded, Colors.orange),
+                  _buildPrefixField(_purchasePrefixCtrl, "Purchase Prefix", "e.g. PO", Icons.shopping_cart_rounded, Colors.green),
+                  _buildPrefixField(_expensePrefixCtrl, "Expense Prefix", "e.g. EXP", Icons.account_balance_wallet_rounded, Colors.purple),
+                  _buildPrefixField(_receiptPrefixCtrl, "Payment Receipt Prefix", "e.g. PR", Icons.payment_rounded, Colors.teal),
                 ]),
 
                 const SizedBox(height: 32),
@@ -3827,6 +3833,10 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
                 TextField(
                   controller: ctrl,
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color),
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                  ],
                   decoration: InputDecoration(
                     isDense: true,
                     border: InputBorder.none,
@@ -4031,10 +4041,13 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
             const Text("Enter the next number to use:", style: TextStyle(fontSize: 12, color: kBlack54)),
             const SizedBox(height: 12),
             TextField(
-              controller: editCtrl,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color),
+               controller: editCtrl,
+               keyboardType: TextInputType.number,
+               inputFormatters: [
+                 FilteringTextInputFormatter.digitsOnly,
+               ],
+               autofocus: true,
+               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color),
               decoration: InputDecoration(
                 
                 
