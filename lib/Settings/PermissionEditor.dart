@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:maxbillup/components/app_mini_switch.dart';
 
 class PermissionEditorPage extends StatefulWidget {
   final String title;
@@ -30,7 +31,7 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
     'Reports': [
       'daybook', 'salesSummary', 'salesReport', 'itemSalesReport',
       'topCustomer', 'stockReport', 'lowStockProduct', 'topProducts',
-      'topCategory', 'expensesReport', 'taxReport', 'hsnReport', 'staffSalesReport'
+      'topCategory', 'expensesReport', 'taxReport', 'staffSalesReport'
     ],
     'Product Management': ['addProduct', 'addCategory'],
     'Settings': ['editBusinessProfile', 'receiptCustomization', 'taxSettings'],
@@ -55,7 +56,7 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
   }
 
   String _formatPermissionName(String key) {
-    // Custom display names for permission keys
+    // Custom display names for permission keys (matching Reports.dart tile titles)
     const displayNames = {
       'quotation': 'Estimation / Quotation',
       'billHistory': 'Manage Bills',
@@ -63,6 +64,31 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
       'customerManagement': 'Customers',
       'creditDetails': 'Credits & Dues',
       'staffManagement': 'Staff Access & Roles',
+      // Reports
+      'daybook': 'Daybook Today',
+      'analytics': 'Business Summary',
+      'salesSummary': 'Business Insights',
+      'salesReport': 'Sales Record',
+      'itemSalesReport': 'Item Sales Report',
+      'topCustomer': 'Top Customers',
+      'stockReport': 'Stock Report',
+      'lowStockProduct': 'Low Stock Products',
+      'topProducts': 'Product Summary',
+      'topCategory': 'Top Categories',
+      'expensesReport': 'Expense Report',
+      'taxReport': 'Tax Report',
+      'staffSalesReport': 'Staff Sale Report',
+      // Invoice Actions
+      'editInvoice': 'Edit Invoice',
+      'returnInvoice': 'Return Invoice',
+      'cancelInvoice': 'Cancel Invoice',
+      // Product Management
+      'addProduct': 'Add Product',
+      'addCategory': 'Add Category',
+      // Settings
+      'editBusinessProfile': 'Edit Business Profile',
+      'receiptCustomization': 'Receipt Customization',
+      'taxSettings': 'Tax Settings',
     };
     if (displayNames.containsKey(key)) return displayNames[key]!;
     return key
@@ -316,7 +342,8 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: kGrey100)),
       ),
-      child: SwitchListTile(
+      child: ListTile(
+        dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         title: Text(
           _formatPermissionName(key),
@@ -327,13 +354,14 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
             fontFamily: 'Lato',
           ),
         ),
-        value: value,
-        activeColor: kPrimaryColor,
-        onChanged: (newValue) {
-          setState(() {
-            _editedPermissions[key] = newValue;
-          });
-        },
+        trailing: AppMiniSwitch(
+          value: value,
+          onChanged: (newValue) {
+            setState(() {
+              _editedPermissions[key] = newValue;
+            });
+          },
+        ),
       ),
     );
   }

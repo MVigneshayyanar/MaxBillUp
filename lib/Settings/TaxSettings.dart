@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:maxbillup/components/app_mini_switch.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
@@ -614,23 +615,26 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                   final taxDoc = taxes[index];
                   final data = taxDoc.data() as Map<String, dynamic>;
                   final active = data['isActive'] ?? false;
-                  return SwitchListTile.adaptive(
-                    activeColor: kPrimaryColor,
+                  return ListTile(
+                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                     title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                     subtitle: Text('${data['percentage']}% Standard Rate', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54)),
-                    value: active,
-                    onChanged: (v) async {
-                      if (v) {
-                        // ENFORCE SINGLE SELECTION: Activate this specific tax and deactivate all others in the store
-                        final batch = FirebaseFirestore.instance.batch();
-                        for (var doc in taxes) {
-                          batch.update(doc.reference, {'isActive': doc.id == taxDoc.id});
+                    trailing: AppMiniSwitch(
+                      value: active,
+                      onChanged: (v) async {
+                        if (v) {
+                          // ENFORCE SINGLE SELECTION: Activate this specific tax and deactivate all others in the store
+                          final batch = FirebaseFirestore.instance.batch();
+                          for (var doc in taxes) {
+                            batch.update(doc.reference, {'isActive': doc.id == taxDoc.id});
+                          }
+                          await batch.commit();
+                        } else {
+                          await _updateTaxStatus(taxDoc.id, false);
                         }
-                        await batch.commit();
-                      } else {
-                        await _updateTaxStatus(taxDoc.id, false);
-                      }
-                    },
+                      },
+                    ),
                   );
                 },
               ),

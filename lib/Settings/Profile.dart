@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:maxbillup/components/app_mini_switch.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -3910,55 +3911,8 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
               ),
             ),
           ),
-          _buildThumbSwitch(val, fn),
+          AppMiniSwitch(value: val, onChanged: fn),
         ],
-      ),
-    );
-  }
-
-  Widget _buildThumbSwitch(bool value, Function(bool) onChanged) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: SizedBox(
-        width: 52,
-        height: 32,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Track
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 46,
-              height: 24,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: value ? kPrimaryColor.withAlpha(120) : const Color(0xFFBDBDBD),
-              ),
-            ),
-            // Knob
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              left: value ? 22 : 2,
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: value ? kPrimaryColor : Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(50),
-                      blurRadius: 4,
-                      spreadRadius: 0.5,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -4748,59 +4702,12 @@ class _SwitchTile extends StatelessWidget {
           child: Row(
             children: [
               Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato'))),
-              _buildThumbSwitch(),
+              AppMiniSwitch(value: value, onChanged: onChanged),
             ],
           ),
         ),
         if (showDivider) const Divider(height: 1, indent: 16, endIndent: 16, color: kGrey100),
       ],
-    );
-  }
-
-  Widget _buildThumbSwitch() {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: SizedBox(
-        width: 52,
-        height: 32,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Track
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 46,
-              height: 24,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: value ? kPrimaryColor.withAlpha(120) : const Color(0xFFBDBDBD),
-              ),
-            ),
-            // Knob
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              left: value ? 22 : 2,
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: value ? kPrimaryColor : Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(50),
-                      blurRadius: 4,
-                      spreadRadius: 0.5,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

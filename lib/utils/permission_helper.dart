@@ -128,7 +128,6 @@ class PermissionHelper {
       'topCategory': true,
       'expensesReport': true,
       'taxReport': true,
-      'hsnReport': true,
       'staffSalesReport': true,
 
       // Stock Items (2)

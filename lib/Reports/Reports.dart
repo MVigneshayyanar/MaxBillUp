@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/Colors.dart' hide kWhite;
+import 'package:maxbillup/components/app_mini_switch.dart';
 import 'package:maxbillup/Menu/Menu.dart' hide kPrimaryColor;
 import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
@@ -9369,16 +9370,16 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
         GestureDetector(
           onTap: () => setState(() => _showCombinedCategory = !_showCombinedCategory),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: _showCombinedCategory ? kPrimaryColor.withValues(alpha: 0.08) : kSurfaceColor,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: _showCombinedCategory ? kPrimaryColor.withValues(alpha: 0.3) : kBorderColor.withValues(alpha: 0.5)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(_showCombinedCategory ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded, size: 16, color: _showCombinedCategory ? kPrimaryColor : kTextSecondary),
-              const SizedBox(width: 6),
               Text("Group by Category", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _showCombinedCategory ? kPrimaryColor : kTextSecondary)),
+              const SizedBox(width: 6),
+              AppMiniSwitch(value: _showCombinedCategory, onChanged: (v) => setState(() => _showCombinedCategory = v)),
             ]),
           ),
         ),

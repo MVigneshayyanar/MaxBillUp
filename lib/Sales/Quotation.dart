@@ -602,13 +602,13 @@ class _QuotationPageState extends State<QuotationPage> {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(vertical: R.sp(context, 12)),
+          padding: EdgeInsets.symmetric(vertical: R.sp(context, 8)),
           decoration: BoxDecoration(
-            color: isSelected ? kPrimaryColor : kGreyBg,
-            borderRadius: R.radius(context, 12),
+            color: isSelected ? kPrimaryColor : Colors.transparent,
+            borderRadius: R.radius(context, 8),
             border: Border.all(color: isSelected ? kPrimaryColor : kGrey200),
           ),
-          child: Text(label, textAlign: TextAlign.center, style: TextStyle(color: isSelected ? kWhite : kBlack54, fontWeight: FontWeight.w700, fontSize: R.sp(context, 13))),
+          child: Text(label, textAlign: TextAlign.center, style: TextStyle(color: isSelected ? kWhite : kBlack54, fontWeight: FontWeight.w700, fontSize: R.sp(context, 11))),
         ),
       ),
     );

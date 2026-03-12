@@ -9,6 +9,7 @@ import 'package:maxbillup/services/cart_service.dart';
 import 'package:maxbillup/services/currency_service.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/amount_formatter.dart';
+import 'package:maxbillup/components/app_mini_switch.dart';
 import 'package:maxbillup/Settings/Profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -1182,11 +1183,11 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kGrey200),
       ),
-      child: SwitchListTile.adaptive(
+      child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
-        value: value,
-        onChanged: onChanged,
-        activeColor: _getTemplateColors(_selectedTemplate)['primary'],
+        trailing: AppMiniSwitch(value: value, onChanged: onChanged),
       ),
     );
   }

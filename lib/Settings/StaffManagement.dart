@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/components/app_mini_switch.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Menu/InviteStaffPage.dart';
@@ -685,7 +686,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
 
   Map<String, bool> _getDefaultPermissions(String role) {
     bool isAdmin = role.toLowerCase().contains('admin');
-    return {'quotation': true, 'billHistory': true, 'creditNotes': isAdmin, 'customerManagement': true, 'expenses': isAdmin, 'creditDetails': isAdmin, 'staffManagement': isAdmin, 'analytics': isAdmin, 'daybook': isAdmin, 'salesSummary': isAdmin, 'salesReport': isAdmin, 'itemSalesReport': isAdmin, 'topCustomer': isAdmin, 'stockReport': isAdmin, 'lowStockProduct': isAdmin, 'topProducts': isAdmin, 'topCategory': isAdmin, 'expensesReport': isAdmin, 'taxReport': isAdmin, 'hsnReport': isAdmin, 'staffSalesReport': isAdmin, 'addProduct': isAdmin, 'addCategory': isAdmin};
+    return {'quotation': true, 'billHistory': true, 'creditNotes': isAdmin, 'customerManagement': true, 'expenses': isAdmin, 'creditDetails': isAdmin, 'staffManagement': isAdmin, 'analytics': isAdmin, 'daybook': isAdmin, 'salesSummary': isAdmin, 'salesReport': isAdmin, 'itemSalesReport': isAdmin, 'topCustomer': isAdmin, 'stockReport': isAdmin, 'lowStockProduct': isAdmin, 'topProducts': isAdmin, 'topCategory': isAdmin, 'expensesReport': isAdmin, 'taxReport': isAdmin, 'staffSalesReport': isAdmin, 'addProduct': isAdmin, 'addCategory': isAdmin};
   }
 
   Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.people_outline_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No staff members yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kBlack87, fontFamily: 'Lato'))]));
@@ -810,7 +811,6 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
       'topCategory': widget.currentPermissions['topCategory'] ?? false,
       'expensesReport': widget.currentPermissions['expensesReport'] ?? false,
       'taxReport': widget.currentPermissions['taxReport'] ?? false,
-      'hsnReport': widget.currentPermissions['hsnReport'] ?? false,
       'staffSalesReport': widget.currentPermissions['staffSalesReport'] ?? false,
       'addProduct': widget.currentPermissions['addProduct'] ?? false,
       'addCategory': widget.currentPermissions['addCategory'] ?? false,
@@ -860,7 +860,7 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
                 ]),
                 const SizedBox(height: 16),
                 _buildPermGroup('ANALYTICS & REPORTS', [
-                  'analytics', 'daybook', 'salesSummary', 'salesReport', 'itemSalesReport', 'topCustomer', 'stockReport', 'lowStockProduct', 'topProducts', 'topCategory', 'expensesReport', 'taxReport', 'hsnReport', 'staffSalesReport'
+                  'analytics', 'daybook', 'salesSummary', 'salesReport', 'itemSalesReport', 'topCustomer', 'stockReport', 'lowStockProduct', 'topProducts', 'topCategory', 'expensesReport', 'taxReport', 'staffSalesReport'
                 ]),
                 const SizedBox(height: 16),
                 _buildPermGroup('STOCKS & BILL ACTIONS', [
@@ -890,6 +890,41 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
     );
   }
 
+  /// Maps permission keys to display names matching the actual report tile titles
+  String _permissionDisplayName(String key) {
+    const displayNames = {
+      // Management tools
+      'quotation': 'ESTIMATION / QUOTATION',
+      'billHistory': 'MANAGE BILLS',
+      'creditNotes': 'RETURN & REFUNDS',
+      'customerManagement': 'CUSTOMERS',
+      'expenses': 'EXPENSES',
+      'creditDetails': 'CREDITS & DUES',
+      'staffManagement': 'STAFF MANAGEMENT',
+      // Reports (matching Reports.dart tile titles)
+      'daybook': 'DAYBOOK TODAY',
+      'analytics': 'BUSINESS SUMMARY',
+      'salesSummary': 'BUSINESS INSIGHTS',
+      'salesReport': 'SALES RECORD',
+      'itemSalesReport': 'ITEM SALES REPORT',
+      'topCustomer': 'TOP CUSTOMERS',
+      'stockReport': 'STOCK REPORT',
+      'lowStockProduct': 'LOW STOCK PRODUCTS',
+      'topProducts': 'PRODUCT SUMMARY',
+      'topCategory': 'TOP CATEGORIES',
+      'taxReport': 'TAX REPORT',
+      'staffSalesReport': 'STAFF SALE REPORT',
+      // Stock & bill actions
+      'addProduct': 'ADD PRODUCT',
+      'addCategory': 'ADD CATEGORY',
+      'saleReturn': 'SALE RETURN',
+      'cancelBill': 'CANCEL BILL',
+      'editBill': 'EDIT BILL',
+    };
+    return displayNames[key] ??
+        key.replaceAllMapped(RegExp(r'([A-Z])'), (m) => ' ${m.group(0)}').toUpperCase();
+  }
+
   Widget _buildPermGroup(String title, List<String> keys) {
     return Container(
       decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
@@ -901,15 +936,17 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
             child: Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 0.5)),
           ),
           ...keys.map((k) {
-            String label = k.replaceAllMapped(RegExp(r'([A-Z])'), (m) => ' ${m.group(0)}').toUpperCase();
+            String label = _permissionDisplayName(k);
             return Column(
               children: [
-                SwitchListTile.adaptive(
-                  title: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack87)),
-                  value: perms[k] ?? false,
-                  onChanged: (v) => setState(() => perms[k] = v),
-                  activeColor: kPrimaryColor,
+                ListTile(
+                  dense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  title: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack87)),
+                  trailing: AppMiniSwitch(
+                    value: perms[k] ?? false,
+                    onChanged: (v) => setState(() => perms[k] = v),
+                  ),
                 ),
                 if (k != keys.last) const Divider(height: 1, indent: 16, endIndent: 16, color: kGrey100),
               ],
