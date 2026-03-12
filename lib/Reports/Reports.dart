@@ -121,7 +121,7 @@ class _ReportsPageState extends State<ReportsPage> {
     }
   }
 
-  bool get isAdmin => _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator';
+  bool get isAdmin => _role.toLowerCase() == 'owner';
 
   void _reset() {
     setState(() {
@@ -336,7 +336,11 @@ class _ReportsPageState extends State<ReportsPage> {
             if (!isAdmin) {
               // Staff must have both permission AND paid plan
               final hasPermission = _permissions[_getPermissionKey(viewName)] == true;
-              if (!hasPermission || !isPaidPlan) {
+              if (!hasPermission) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                return;
+              }
+              if (!isPaidPlan) {
                 PlanPermissionHelper.showUpgradeDialog(
                   context,
                   title,

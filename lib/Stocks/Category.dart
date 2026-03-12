@@ -118,7 +118,7 @@ class _CategoryPageState extends State<CategoryPage> {
   bool _hasPermission(String permission) => _permissions[permission] == true;
   bool get isAdmin {
     final r = _role.toLowerCase();
-    return r == 'owner' || r == 'administrator' || r == 'admin';
+    return r == 'owner';
   }
 
   @override
@@ -737,7 +737,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
       final permissions = userData['permissions'] as Map<String, dynamic>;
       final role = userData['role'] as String;
       final r = role.toLowerCase();
-      return permissions['addCategory'] == true || r == 'owner' || r == 'administrator' || r == 'admin';
+      return permissions['addCategory'] == true || r == 'owner';
     });
     return FutureBuilder<bool>(
       future: canAddCategory,

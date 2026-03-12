@@ -58,8 +58,8 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-          title: Text(context.tr('Expense Types'),
-              style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+          title: const Text('Expense Category',
+              style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
           elevation: 0,
           centerTitle: true,

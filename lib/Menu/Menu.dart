@@ -235,7 +235,7 @@ class _MenuPageState extends State<MenuPage> {
   Widget build(BuildContext context) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
-        bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
+        bool isAdmin = _role.toLowerCase() == 'owner';
         final isProviderReady = planProvider.isInitialized;
         final currentPlan = planProvider.cachedPlan;
         // Wait until both provider and permissions are loaded before showing locks/upgrade prompts
@@ -286,7 +286,10 @@ class _MenuPageState extends State<MenuPage> {
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical:10),
                   children: [
+                    // Compute section visibility
+                    if (isFeatureAvailable('billHistory') || isFeatureAvailable('customerManagement', requiredRank: 1) || isFeatureAvailable('expenses', requiredRank: 1))
                     _buildSectionLabel("CORE OPERATIONS"),
+                    if (isFeatureAvailable('billHistory') || isFeatureAvailable('customerManagement', requiredRank: 1))
                     Row(
                       children: [
                         if (_hasPermission('billHistory') || isAdmin)
@@ -312,12 +315,15 @@ class _MenuPageState extends State<MenuPage> {
                           ),
                       ],
                     ),
+                    if (isFeatureAvailable('billHistory') || isFeatureAvailable('customerManagement', requiredRank: 1) || isFeatureAvailable('expenses', requiredRank: 1))
                     const SizedBox(height: 8),
 
                     if (isFeatureAvailable('expenses', requiredRank: 1))
                       _buildExpenseExpansionTile(context),
 
+                    if (isFeatureAvailable('creditDetails', requiredRank: 2) || (isAdmin || _hasPermission('creditNotes')) || isFeatureAvailable('quotation', requiredRank: 1))
                     const SizedBox(height: 12),
+                    if (isFeatureAvailable('creditDetails', requiredRank: 2) || (isAdmin || _hasPermission('creditNotes')) || isFeatureAvailable('quotation', requiredRank: 1))
                     _buildSectionLabel("SALES OPERATIONS"),
 
                     if (isFeatureAvailable('creditDetails', requiredRank: 2))
@@ -620,7 +626,7 @@ class _MenuPageState extends State<MenuPage> {
     Widget _buildMenuTile(String title, HeroIcons icon, Color color, String viewKey, {int requiredRank = 0, int badgeCount = 0}) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
-        bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
+        bool isAdmin = _role.toLowerCase() == 'owner';
         final currentPlan = planProvider.cachedPlan;
         final isProviderReady = planProvider.isInitialized; // only enforce rank checks when ready
 
@@ -663,7 +669,11 @@ class _MenuPageState extends State<MenuPage> {
                 if (!isAdmin) {
                   final permKey = _getPermissionKeyFromView(viewKey);
                   final hasPermission = _hasPermission(permKey);
-                  if (!hasPermission || (requiredRank > 0 && !isPaidPlan)) {
+                  if (!hasPermission) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    return;
+                  }
+                  if (requiredRank > 0 && !isPaidPlan) {
                     PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
                     return;
                   }
@@ -715,7 +725,7 @@ class _MenuPageState extends State<MenuPage> {
     Widget _buildGridMenuTile(String title, HeroIcons icon, Color color, String viewKey, {int requiredRank = 0}) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
-        bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
+        bool isAdmin = _role.toLowerCase() == 'owner';
         final currentPlan = planProvider.cachedPlan;
         final isProviderReady = planProvider.isInitialized; // only enforce rank checks when ready
 
@@ -756,7 +766,11 @@ class _MenuPageState extends State<MenuPage> {
                 if (!isAdmin) {
                   final permKey = _getPermissionKeyFromView(viewKey);
                   final hasPermission = _hasPermission(permKey);
-                  if (!hasPermission || (requiredRank > 0 && !isPaidPlan)) {
+                  if (!hasPermission) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    return;
+                  }
+                  if (requiredRank > 0 && !isPaidPlan) {
                     PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
                     return;
                   }
@@ -821,10 +835,10 @@ class _MenuPageState extends State<MenuPage> {
           title: Text(context.tr('expenses'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87)),
           childrenPadding: const EdgeInsets.only(left: 58, right: 12, bottom: 12),
           children: [
-            _buildSubMenuItem('Stock Purchase', 'StockPurchase'),
-            _buildSubMenuItem('Direct Expenses', 'Expenses'),
-            _buildSubMenuItem('Expense Type', 'ExpenseCategories'),
-            _buildSubMenuItem('Vendors', 'Vendors'),
+            _buildSubMenuItem('Expenses', 'Expenses'),
+            _buildSubMenuItem('Expense Category', 'ExpenseCategories'),
+            _buildSubMenuItem('Product Purchase', 'StockPurchase'),
+            _buildSubMenuItem('Suppliers', 'Vendors'),
           ],
         ),
       ),
@@ -1744,8 +1758,8 @@ class SalesDetailPage extends StatelessWidget {
       debugPrint('Permission Check: role = $role');
       debugPrint('Staff permissions retrieved: $permissions');
 
-      // Check if user is admin
-      final isAdmin = role.toLowerCase() == 'owner' || role.toLowerCase() == 'administrator';
+      // Check if user is owner
+      final isAdmin = role.toLowerCase() == 'owner';
       debugPrint('User is admin: $isAdmin');
 
       if (isAdmin) {

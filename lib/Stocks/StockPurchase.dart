@@ -73,7 +73,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
           ),
-          title: const Text('Stock Purchases', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+          title: const Text('Product Purchases', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
           leading: IconButton(
             icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20),
@@ -471,7 +471,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
       appBar: AppBar(
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-          ),title: const Text('New Stock Purchase', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20), onPressed: widget.onBack)),
+          ),title: const Text('New Product Purchase', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20), onPressed: widget.onBack)),
       body: Form(
         key: _formKey,
         child: Column(

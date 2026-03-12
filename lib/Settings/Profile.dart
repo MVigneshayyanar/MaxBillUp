@@ -25,6 +25,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
+import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/Settings/TaxSettings.dart' as TaxSettingsNew;
 import 'package:maxbillup/Settings/StaffManagement.dart' hide kPrimaryColor, kErrorColor;
 
@@ -67,7 +68,7 @@ class _SettingsPageState extends State<SettingsPage> {
         setState(() {
           _permissions = data['permissions'] as Map<String, dynamic>? ?? {};
           _role = data['role'] as String? ?? '';
-          _isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
+          _isAdmin = _role.toLowerCase() == 'owner';
         });
       } else {
         // If no user doc found, check if this is the store owner
@@ -244,7 +245,8 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () => _navigateTo('BusinessDetails'),
               subtitle: "Manage business profile & details",
             ),
-          // 2. User Management (Staff Management - always visible, plan check on tap)
+          // 2. User Management (Staff Management - only visible if admin or has staffManagement permission)
+          if (_isAdmin || _hasPermission('staffManagement'))
           _buildModernTile(
             title: "Staff Access & Roles",
             icon: HeroIcons.users,

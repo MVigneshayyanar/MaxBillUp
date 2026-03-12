@@ -117,7 +117,7 @@ class _VendorsPageState extends State<VendorsPage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-          title: const Text('Vendors',
+          title: const Text('Suppliers',
               style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
           leading: IconButton(
@@ -393,12 +393,12 @@ class _VendorsPageState extends State<VendorsPage> {
           HeroIcon(HeroIcons.users, size: 64, color: kGrey300),
           const SizedBox(height: 16),
           const Text(
-            'No vendors found',
+            'No suppliers found',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Vendors will be added automatically\nduring stock purchases.',
+            'Suppliers will be added automatically\nduring product purchases.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: kBlack54),
           ),

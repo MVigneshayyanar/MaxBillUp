@@ -24,9 +24,9 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
   final Map<String, List<String>> _categories = {
     'Sales & Billing': ['quotation', 'billHistory', 'creditNotes'],
     'Invoice Actions': ['editInvoice', 'returnInvoice', 'cancelInvoice'],
-    'Customer Management': ['customerManagement', 'creditDetails'],
+    'Customers': ['customerManagement', 'creditDetails'],
     'Expenses': ['expenses'],
-    'Staff & Analytics': ['staffManagement', 'analytics'],
+    'Staff Access & Roles': ['staffManagement', 'analytics'],
     'Reports': [
       'daybook', 'salesSummary', 'salesReport', 'itemSalesReport',
       'topCustomer', 'stockReport', 'lowStockProduct', 'topProducts',
@@ -55,6 +55,16 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
   }
 
   String _formatPermissionName(String key) {
+    // Custom display names for permission keys
+    const displayNames = {
+      'quotation': 'Estimation / Quotation',
+      'billHistory': 'Manage Bills',
+      'creditNotes': 'Return & Refunds',
+      'customerManagement': 'Customers',
+      'creditDetails': 'Credits & Dues',
+      'staffManagement': 'Staff Access & Roles',
+    };
+    if (displayNames.containsKey(key)) return displayNames[key]!;
     return key
         .replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(0)}')
         .split(' ')

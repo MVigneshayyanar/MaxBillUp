@@ -25,8 +25,10 @@ class PermissionHelper {
           };
         }
 
-        final permissions = data['permissions'] as Map<String, dynamic>?;
-        if (permissions != null && permissions.isNotEmpty) {
+        // If the user doc has a 'permissions' key at all (even if empty/all-false),
+        // respect it as the source of truth. An empty map means NO permissions.
+        if (data.containsKey('permissions')) {
+          final permissions = data['permissions'] as Map<String, dynamic>? ?? {};
           return {
             'role': role,
             'permissions': permissions,
@@ -96,10 +98,10 @@ class PermissionHelper {
     };
   }
 
-  /// Check if a role string represents an admin/owner role.
+  /// Check if a role string represents the store owner (only owner bypasses permissions).
   static bool _isAdminRole(String role) {
     final r = role.toLowerCase();
-    return r == 'owner' || r == 'administrator' || r == 'admin';
+    return r == 'owner';
   }
 
   static Map<String, bool> _getAllPermissions() {
