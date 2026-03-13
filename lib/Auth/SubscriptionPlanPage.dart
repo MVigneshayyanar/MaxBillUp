@@ -31,6 +31,47 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   int _selectedDuration = 1; // 1 or 12 months
   bool _isPaymentInProgress = false;
 
+  // Subscription state (loaded from store document)
+  DateTime? _currentStartDate;
+  DateTime? _currentExpiryDate;
+  bool _subscriptionLoaded = false;
+
+  DateTime? _tryParseDate(dynamic v) {
+    try {
+      if (v == null) return null;
+      if (v is Timestamp) return v.toDate();
+      if (v is DateTime) return v;
+      return DateTime.tryParse(v.toString());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  int _daysBetween(DateTime a, DateTime b) {
+    final start = DateTime.utc(a.year, a.month, a.day);
+    final end = DateTime.utc(b.year, b.month, b.day);
+    return end.difference(start).inDays;
+  }
+
+  int get _selectedPlanRank {
+    return (plans.firstWhere(
+          (p) => p['name'] == _selectedPlan,
+          orElse: () => plans[1],
+        )['rank'] as int?) ?? 0;
+  }
+
+  int get _currentPlanRank {
+    final currentPlanLower = widget.currentPlan.toLowerCase();
+    final matching = plans.firstWhere(
+      (p) => p['name'].toString().toLowerCase() == currentPlanLower,
+      orElse: () => plans[0],
+    );
+    return (matching['rank'] as int?) ?? 0;
+  }
+
+  bool get _isUpgrade => _selectedPlanRank > _currentPlanRank;
+  bool get _isExtend => _selectedPlanRank == _currentPlanRank;
+
   final List<Map<String, dynamic>> plans = [
     {
       'name': 'Starter',
@@ -156,6 +197,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   void initState() {
     super.initState();
     _setupRazorpay();
+    _loadSubscriptionFromStore();
     // Default to 'MAX One' if current plan is Starter or Free or not found
     final currentPlanLower = widget.currentPlan.toLowerCase();
     if (currentPlanLower.contains('starter') || currentPlanLower.contains('free')) {
@@ -167,6 +209,32 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         orElse: () => plans[1], // Default to MAX One
       );
       _selectedPlan = matchingPlan['name'];
+    }
+  }
+
+  Future<void> _loadSubscriptionFromStore() async {
+    try {
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      if (storeDoc != null && storeDoc.exists) {
+        final data = storeDoc.data() as Map<String, dynamic>;
+        final start = _tryParseDate(data['subscriptionStartDate']);
+        final exp = _tryParseDate(data['subscriptionExpiryDate']);
+        if (mounted) {
+          setState(() {
+            _currentStartDate = start;
+            _currentExpiryDate = exp;
+            _subscriptionLoaded = true;
+          });
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint('Error loading subscription: $e');
+    }
+    if (mounted) {
+      setState(() {
+        _subscriptionLoaded = true;
+      });
     }
   }
 
@@ -200,7 +268,24 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
 
   void _showSuccessAndPop(String paymentId) async {
     final now = DateTime.now();
-    DateTime expiryDate = DateTime(now.year, now.month + _selectedDuration, now.day);
+    // Extend: add duration on top of current expiry (or now if expired/missing)
+    // Upgrade: new cycle starts today.
+    DateTime baseDate;
+    if (_isExtend) {
+      final exp = _currentExpiryDate;
+      if (exp != null && exp.isAfter(now)) {
+        baseDate = exp;
+      } else {
+        baseDate = now;
+      }
+    } else {
+      baseDate = now;
+    }
+    DateTime expiryDate = DateTime(baseDate.year, baseDate.month + _selectedDuration, baseDate.day);
+
+    final DateTime startDate = _isExtend
+        ? (_currentStartDate ?? now)
+        : now;
 
     final storeDoc = await FirestoreService().getCurrentStoreDoc();
     if (storeDoc == null) return;
@@ -208,8 +293,9 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     // Update Firestore with new subscription
     await FirestoreService().storeCollection.doc(storeDoc.id).update({
       'plan': _selectedPlan,
-      'subscriptionStartDate': now.toIso8601String(),
+      'subscriptionStartDate': startDate.toIso8601String(),
       'subscriptionExpiryDate': expiryDate.toIso8601String(),
+      'billingCycleMonths': _selectedDuration,
       'paymentId': paymentId,
       'lastPaymentDate': now.toIso8601String(),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -288,8 +374,36 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       (p) => p['name'] == _selectedPlan,
       orElse: () => plans[1],
     );
-    
-    final int amount = (plan['price'][_selectedDuration.toString()] * 100).toInt();
+
+    final int targetPrice = (plan['price'][_selectedDuration.toString()] ?? 0) as int;
+
+    // Proration: if upgrading mid-cycle, apply credit for remaining days of current plan.
+    int payablePrice = targetPrice;
+    if (_isUpgrade) {
+      final currentPlanLower = widget.currentPlan.toLowerCase();
+      final currentPlanData = plans.firstWhere(
+        (p) => p['name'].toString().toLowerCase() == currentPlanLower,
+        orElse: () => plans[0],
+      );
+      final int currentPrice = (currentPlanData['price'][_selectedDuration.toString()] ?? 0) as int;
+
+      final now = DateTime.now();
+      final start = _currentStartDate;
+      final exp = _currentExpiryDate;
+
+      // If we don't have dates, skip credit (security-first and avoids wrong charges).
+      if (start != null && exp != null && exp.isAfter(now) && exp.isAfter(start) && currentPrice > 0) {
+        final cycleDays = _daysBetween(start, exp);
+        final remainingDays = _daysBetween(now, exp);
+        if (cycleDays > 0 && remainingDays > 0) {
+          final credit = (currentPrice * (remainingDays / cycleDays));
+          payablePrice = (targetPrice - credit).ceil();
+          if (payablePrice < 0) payablePrice = 0;
+        }
+      }
+    }
+
+    final int amount = (payablePrice * 100).toInt();
     if (amount <= 0) {
       _showSuccessAndPop('FREE_ACTIVATION');
       setState(() => _isPaymentInProgress = false);
@@ -734,16 +848,39 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     );
     final themeColor = selectedPlanData['themeColor'] as Color? ?? kPrimaryColor;
     final bool isUpgrade = selectedPlanData['rank'] > currentPlanData['rank'];
+    final bool isExtend = selectedPlanData['rank'] == currentPlanData['rank'];
+
+    int payablePrice = price;
+    if (isUpgrade) {
+      // Apply remaining-day credit from current plan when possible.
+      final now = DateTime.now();
+      final start = _currentStartDate;
+      final exp = _currentExpiryDate;
+      final int currentPrice = (currentPlanData['price'][_selectedDuration.toString()] ?? 0) as int;
+      if (start != null && exp != null && exp.isAfter(now) && exp.isAfter(start) && currentPrice > 0) {
+        final cycleDays = _daysBetween(start, exp);
+        final remainingDays = _daysBetween(now, exp);
+        if (cycleDays > 0 && remainingDays > 0) {
+          final credit = (currentPrice * (remainingDays / cycleDays));
+          payablePrice = (price - credit).ceil();
+          if (payablePrice < 0) payablePrice = 0;
+        }
+      }
+    }
 
     String buttonText;
     bool isEnabled;
 
     if (isCurrent) {
-      buttonText = "Active Plan";
-      isEnabled = false;
+      buttonText = isExtend ? (_isPaymentInProgress ? "PROCESSING..." : "Extend Plan") : "Active Plan";
+      isEnabled = isExtend && !_isPaymentInProgress;
     } else if (isUpgrade) {
-      buttonText = _isPaymentInProgress ? "PROCESSING..." : "Upgrade Now";
-      isEnabled = !_isPaymentInProgress;
+      // Block upgrades until we load subscription dates (to avoid wrong proration).
+      final canProceed = _subscriptionLoaded;
+      buttonText = !canProceed
+          ? "LOADING..."
+          : (_isPaymentInProgress ? "PROCESSING..." : "Upgrade Now");
+      isEnabled = canProceed && !_isPaymentInProgress;
     } else {
       buttonText = "Locked";
       isEnabled = false;
@@ -797,7 +934,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                     children: [
                       Text(isYearly ? "TOTAL (YEARLY)" : "TOTAL (MONTHLY)", style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
                       const SizedBox(height: 2),
-                      Text("$price", style: TextStyle(color: themeColor, fontSize: 24, fontWeight: FontWeight.w900)),
+                      Text("$payablePrice", style: TextStyle(color: themeColor, fontSize: 24, fontWeight: FontWeight.w900)),
                       if (price > 0) ...[
                         const SizedBox(height: 2),
                         Text("Only $dailyPriceStr per day", style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w700)),
