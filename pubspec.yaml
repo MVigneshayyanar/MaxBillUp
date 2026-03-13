@@ -88,10 +88,11 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#4A5DF9"
-  image: assets/max_splash_mic_padded.png
+  background_image: assets/MAX_my_bill_mobile.png
+  # image: assets/max_splash_mic_padded.png # Image not needed if background has everything
   fullscreen: true
   android_gravity: center
-  ios_content_mode: center
+  ios_content_mode: scaleAspectFill
   android: true
   ios: true
   web: false
