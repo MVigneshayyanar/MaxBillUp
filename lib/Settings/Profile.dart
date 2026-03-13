@@ -26,9 +26,9 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
-import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/Settings/TaxSettings.dart' as TaxSettingsNew;
-import 'package:maxbillup/Settings/StaffManagement.dart' hide kPrimaryColor, kErrorColor;
+import 'package:maxbillup/Settings/StaffManagement.dart';
+import 'package:maxbillup/services/referral_service.dart';
 
 // ==========================================DF
 // 1. MAIN SETTINGS PAGE
@@ -247,26 +247,26 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: "Manage business profile & details",
             ),
           // 2. User Management (Staff Management - only visible if admin or has staffManagement permission)
-          if (_isAdmin || _hasPermission('staffManagement'))
-          _buildModernTile(
-            title: "Staff Access & Roles",
-            icon: HeroIcons.users,
-            color: const Color(0xFF9C27B0),
-            onTap: () async {
-              final canAccess = await PlanPermissionHelper.canAccessStaffManagement();
-              if (!mounted) return;
-              if (canAccess) {
-                _navigateTo('UserManagement');
-              } else {
-                PlanPermissionHelper.showUpgradeDialog(
-                  context,
-                  'Staff Access & Roles',
-                  uid: widget.uid,
-                );
-              }
-            },
-            subtitle: "Manage staff & permissions",
-          ),
+          if (_isAdmin)
+            _buildModernTile(
+              title: "Staff Access & Roles",
+              icon: HeroIcons.users,
+              color: const Color(0xFF9C27B0),
+              onTap: () async {
+                final canAccess = await PlanPermissionHelper.canAccessStaffManagement();
+                if (!mounted) return;
+                if (canAccess) {
+                  _navigateTo('UserManagement');
+                } else {
+                  PlanPermissionHelper.showUpgradeDialog(
+                    context,
+                    'Staff Access & Roles',
+                    uid: widget.uid,
+                  );
+                }
+              },
+              subtitle: "Manage staff & permissions",
+            ),
           // 3. Tax Settings - only visible if admin or has taxSettings permission
           if (_isAdmin || _hasPermission('taxSettings'))
             _buildModernTile(
@@ -300,6 +300,15 @@ class _SettingsPageState extends State<SettingsPage> {
             color: kPrimaryColor,
             onTap: () => _navigateTo('GeneralSettings'),
             subtitle: "Language",//, theme & preferences
+          ),
+
+          // Invite a Friend
+          _buildModernTile(
+            title: "Invite a Friend",
+            icon: HeroIcons.share,
+            color: const Color(0xFF2F7CF6),
+            onTap: () => ReferralService.showReferralDialog(context),
+            subtitle: "Share MAXmybill with friends",
           ),
           const SizedBox(height: 32),
           const Center(child: Text('Version 1.0.0', style: TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1, fontFamily: 'Lato'))),

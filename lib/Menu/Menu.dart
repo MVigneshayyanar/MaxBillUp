@@ -84,6 +84,43 @@ class _MenuPageState extends State<MenuPage> {
   Map<String, dynamic> _permissions = {};
   Stream<int>? _overdueCounterStream;
 
+  bool get _isOwner => _role.toLowerCase() == 'owner';
+
+  /// Banner visibility rules:
+  /// - #0 Upgrade: always visible
+  /// - #1 Update Now (DayBook): requires DayBook access (owner OR daybook permission)
+  /// - #2 Start Billing (Staff Access & Roles): owner only
+  /// - #3 View Report (View Credit): owner only
+  bool get _canAccessDayBook => _isOwner || _hasPermission('daybook');
+
+  List<String> get _visibleBannerImages {
+    final images = <String>[_bannerImages[0]];
+
+    // If permissions aren't loaded yet, keep UI stable (avoid banner flicker).
+    if (!_permissionsLoaded) return _bannerImages;
+
+    if (_canAccessDayBook) {
+      images.add(_bannerImages[1]);
+    }
+
+    if (_isOwner) {
+      images.add(_bannerImages[2]);
+      images.add(_bannerImages[3]);
+    }
+
+    return images;
+  }
+
+  bool _canSeeAnyExpensesGroup({required bool isAdmin, required bool isFullyLoaded}) {
+    // Until permissions + plan are loaded, keep UI visible to avoid flicker.
+    if (!isFullyLoaded) return true;
+    if (isAdmin) return true;
+    return _hasPermission('expenses') ||
+        _hasPermission('expenseCategories') ||
+        _hasPermission('stockPurchase') ||
+        _hasPermission('vendors');
+  }
+
   // Slider State
   final PageController _headerController = PageController();
   int _currentHeaderIndex = 0;
@@ -149,7 +186,9 @@ class _MenuPageState extends State<MenuPage> {
   void _startHeaderSlider() {
     _sliderTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_headerController.hasClients) {
-        int nextIndex = (_currentHeaderIndex + 1) % _bannerImages.length;
+        final visibleCount = _visibleBannerImages.length;
+        if (visibleCount <= 1) return;
+        int nextIndex = (_currentHeaderIndex + 1) % visibleCount;
         _headerController.animateToPage(
           nextIndex,
           duration: const Duration(milliseconds: 800),
@@ -253,8 +292,13 @@ class _MenuPageState extends State<MenuPage> {
         bool isFeatureAvailable(String permission, {int requiredRank = 0}) {
           // Until both provider and permission data are loaded, allow features to be visible (avoid flicker of locks)
           if (!isFullyLoaded) return true;
-          if (permission == 'DayBook') return true; // always available
           if (isAdmin) return true;
+
+          // Daybook is a free feature (no plan rank requirement), but it should still respect staff permissions.
+          // Note: Permission key is 'daybook' (lowercase) as used in PermissionEditor/PermissionHelper.
+          if (permission.toLowerCase() == 'daybook') {
+            return _hasPermission('daybook');
+          }
 
           // If the current user explicitly has permission, grant access regardless of plan rank.
           if (_hasPermission(permission)) return true;
@@ -287,7 +331,7 @@ class _MenuPageState extends State<MenuPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical:10),
                   children: [
                     // Compute section visibility
-                    if (isFeatureAvailable('billHistory') || isFeatureAvailable('customerManagement', requiredRank: 1) || isFeatureAvailable('expenses', requiredRank: 1))
+                    if (isFeatureAvailable('billHistory') || isFeatureAvailable('customerManagement', requiredRank: 1) || _canSeeAnyExpensesGroup(isAdmin: isAdmin, isFullyLoaded: isFullyLoaded))
                     _buildSectionLabel("Core Operations"),
                     if (isFeatureAvailable('billHistory') || isFeatureAvailable('customerManagement', requiredRank: 1))
                     Row(
@@ -306,7 +350,7 @@ class _MenuPageState extends State<MenuPage> {
                         if (isFeatureAvailable('customerManagement', requiredRank: 1))
                           Expanded(
                             child: _buildGridMenuTile(
-                              'Customers',
+                              'Customer',
                               HeroIcons.users,
                               const Color(0xFF9C27B0),
                               'Customers',
@@ -315,15 +359,15 @@ class _MenuPageState extends State<MenuPage> {
                           ),
                       ],
                     ),
-                    if (isFeatureAvailable('billHistory') || isFeatureAvailable('customerManagement', requiredRank: 1) || isFeatureAvailable('expenses', requiredRank: 1))
+                    if (isFeatureAvailable('billHistory') || isFeatureAvailable('customerManagement', requiredRank: 1) || _canSeeAnyExpensesGroup(isAdmin: isAdmin, isFullyLoaded: isFullyLoaded))
                     const SizedBox(height: 8),
 
-                    if (isFeatureAvailable('expenses', requiredRank: 1))
-                      _buildExpenseExpansionTile(context),
+                    if (_canSeeAnyExpensesGroup(isAdmin: isAdmin, isFullyLoaded: isFullyLoaded))
+                      _buildExpenseExpansionTile(context, isAdmin: isAdmin),
 
-                    if (isFeatureAvailable('creditDetails', requiredRank: 2) || (isAdmin || _hasPermission('creditNotes')) || isFeatureAvailable('quotation', requiredRank: 1))
+                    if (isFeatureAvailable('creditDetails', requiredRank: 2) || (_hasPermission('creditNotes')) || isFeatureAvailable('quotation', requiredRank: 1))
                     const SizedBox(height: 12),
-                    if (isFeatureAvailable('creditDetails', requiredRank: 2) || (isAdmin || _hasPermission('creditNotes')) || isFeatureAvailable('quotation', requiredRank: 1))
+                    if (isFeatureAvailable('creditDetails', requiredRank: 2) || (_hasPermission('creditNotes')) || isFeatureAvailable('quotation', requiredRank: 1))
                     _buildSectionLabel("Sales Operations"),
 
                     if (isFeatureAvailable('creditDetails', requiredRank: 2))
@@ -341,7 +385,7 @@ class _MenuPageState extends State<MenuPage> {
                         }
                       ),
 
-                    if (isAdmin || _hasPermission('creditNotes'))
+                    if (_hasPermission('creditNotes'))
                       _buildMenuTile('Returns & Refunds', HeroIcons.ticket, kOrange, 'CreditNotes', requiredRank: 1),
 
                     if (isFeatureAvailable('quotation', requiredRank: 1))
@@ -412,6 +456,8 @@ class _MenuPageState extends State<MenuPage> {
     final double bannerWidth = MediaQuery.of(context).size.width - 32;
     final double bannerHeight = bannerWidth * (400 / 1125);
 
+    final banners = _visibleBannerImages;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Container(
@@ -433,12 +479,12 @@ class _MenuPageState extends State<MenuPage> {
                       _currentHeaderIndex = index;
                     });
                   },
-                  itemCount: _bannerImages.length,
+                    itemCount: banners.length,
                   itemBuilder: (context, index) {
                     return GestureDetector(
                       onTap: () => _handleBannerNavigation(index),
                       child: Image.asset(
-                        _bannerImages[index],
+                          banners[index],
                         fit: BoxFit.cover, // Changed from fill to cover for better quality
                       ),
                     );
@@ -465,7 +511,7 @@ class _MenuPageState extends State<MenuPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
-                  _bannerImages.length,
+                  banners.length,
                       (index) => Container(
                     margin: const EdgeInsets.symmetric(horizontal: 3),
                     width: _currentHeaderIndex == index ? 18 : 6,
@@ -489,7 +535,23 @@ class _MenuPageState extends State<MenuPage> {
   void _handleBannerNavigation(int index) {
     final planProvider = Provider.of<PlanProvider>(context, listen: false);
 
-    switch (index) {
+    // Map visible index -> original banner index.
+    // NOTE: This must match _visibleBannerImages() order.
+    int originalIndex = 0;
+    if (!_permissionsLoaded) {
+      originalIndex = index;
+    } else {
+      final mapping = <int>[0];
+      if (_canAccessDayBook) mapping.add(1);
+      if (_isOwner) {
+        mapping.add(2);
+        mapping.add(3);
+      }
+      if (index < 0 || index >= mapping.length) return;
+      originalIndex = mapping[index];
+    }
+
+    switch (originalIndex) {
       case 0:
         // Upgrade Now → Subscription plan
         Navigator.push(
@@ -504,6 +566,11 @@ class _MenuPageState extends State<MenuPage> {
         break;
       case 1:
         // Update Now → DayBook
+        if (!_canAccessDayBook) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return;
+        }
+
         Navigator.push(
           context,
           CupertinoPageRoute(
@@ -516,6 +583,10 @@ class _MenuPageState extends State<MenuPage> {
         break;
       case 2:
         // Start Billing → Staff Access & Roles
+        if (!_isOwner) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return;
+        }
         Navigator.push(
           context,
           CupertinoPageRoute(
@@ -528,7 +599,11 @@ class _MenuPageState extends State<MenuPage> {
         );
         break;
       case 3:
-        // View Report → Credit Tracker
+        // View Report → View Credit
+        if (!_isOwner) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return;
+        }
         Navigator.push(
           context,
           CupertinoPageRoute(
@@ -814,8 +889,19 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  Widget _buildExpenseExpansionTile(BuildContext context) {
+  Widget _buildExpenseExpansionTile(BuildContext context, {required bool isAdmin}) {
     const Color color = Color(0xFFE91E63);
+
+    // Show the Expenses tile if ANY expense-related permission is enabled.
+    // This ensures the tile remains visible even if 'expenses' is disabled but
+    // other sub-components are enabled (Expense Category / Product Purchase / Suppliers).
+    final canSeeAny = isAdmin ||
+        _hasPermission('expenses') ||
+        _hasPermission('expenseCategories') ||
+        _hasPermission('stockPurchase') ||
+        _hasPermission('vendors');
+    if (!canSeeAny) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -835,10 +921,14 @@ class _MenuPageState extends State<MenuPage> {
           title: Text(context.tr('expenses'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87)),
           childrenPadding: const EdgeInsets.only(left: 58, right: 12, bottom: 12),
           children: [
-            _buildSubMenuItem('Expenses', 'Expenses'),
-            _buildSubMenuItem('Expense Category', 'ExpenseCategories'),
-            _buildSubMenuItem('Product Purchase', 'StockPurchase'),
-            _buildSubMenuItem('Suppliers', 'Vendors'),
+            if (isAdmin || _hasPermission('expenses'))
+              _buildSubMenuItem('Expenses', 'Expenses'),
+            if (isAdmin || _hasPermission('expenseCategories'))
+              _buildSubMenuItem('Expense Category', 'ExpenseCategories'),
+            if (isAdmin || _hasPermission('stockPurchase'))
+              _buildSubMenuItem('Product Purchase', 'StockPurchase'),
+            if (isAdmin || _hasPermission('vendors'))
+              _buildSubMenuItem('Suppliers', 'Vendors'),
           ],
         ),
       ),
@@ -860,6 +950,9 @@ class _MenuPageState extends State<MenuPage> {
       case 'Customers': return 'customerManagement';
       case 'CreditNotes': return 'creditNotes';
       case 'Expenses': return 'expenses';
+      case 'ExpenseCategories': return 'expenseCategories';
+      case 'StockPurchase': return 'stockPurchase';
+      case 'Vendors': return 'vendors';
       case 'CreditDetails': return 'creditDetails';
       case 'Quotation': return 'quotation';
       case 'StaffManagement': return 'staffManagement';

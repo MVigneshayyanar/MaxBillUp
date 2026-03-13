@@ -197,7 +197,12 @@ class _ReportsPageState extends State<ReportsPage> {
       // If not fully loaded yet, assume feature is available (no lock shown)
       if (!isFullyLoaded) return true;
 
-      if (permission == 'DayBook') return true;
+      // Daybook is free (no paid plan needed), but it should still respect staff permissions.
+      // Permission key used across the app is 'daybook' (lowercase).
+      if (permission.toLowerCase() == 'daybook') {
+        if (isAdmin) return true;
+        return _permissions[_getPermissionKey(permission)] == true;
+      }
       // Show all cards for admins - upgrade prompt will be shown on click if needed
       if (isAdmin) return true;
       final userPerm = _permissions[permission] == true;
@@ -209,6 +214,13 @@ class _ReportsPageState extends State<ReportsPage> {
     bool hasSalesItems = isFeatureAvailable('salesReport') || isFeatureAvailable('itemSalesReport') || isFeatureAvailable('topCustomer') || isFeatureAvailable('staffSalesReport');
     bool hasInventoryItems = isFeatureAvailable('stockReport') || isFeatureAvailable('lowStockProduct') || isFeatureAvailable('topProducts') || isFeatureAvailable('topCategory');
     bool hasFinancialsItems = isFeatureAvailable('expensesReport') || isFeatureAvailable('taxReport');
+
+    final bool hasAnyVisibleTile =
+        isFeatureAvailable('daybook') ||
+        hasAnalyticsItems ||
+        hasSalesItems ||
+        hasInventoryItems ||
+        hasFinancialsItems;
 
     return Scaffold(
       backgroundColor: kGreyBg,
@@ -223,13 +235,38 @@ class _ReportsPageState extends State<ReportsPage> {
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
-      body: ListView(
+      body: !hasAnyVisibleTile
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const HeroIcon(HeroIcons.lockClosed, size: 42, color: kGrey400),
+                    const SizedBox(height: 12),
+                    Text(
+                      context.tr('No reports available'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kBlack87),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      context.tr('You do not have access to any reports. Please contact your owner.'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : ListView(
         controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         children: [
           // Analytics Overview Section
           if (hasAnalyticsItems) _buildSectionLabel(context.tr('analytics_overview')),
-          _buildReportTile(context.tr('daybook_today'), HeroIcons.bookOpen, const Color(0xFFFF5722), 'DayBook', subtitle: 'Daily transaction log'),
+          if (isFeatureAvailable('daybook'))
+            _buildReportTile(context.tr('daybook_today'), HeroIcons.bookOpen, const Color(0xFFFF5722), 'DayBook', subtitle: 'Daily transaction log'),
           if (isFeatureAvailable('topProducts'))
             _buildReportTile(context.tr('Product Summary'), HeroIcons.arrowTrendingUp, const Color(0xFF00796B), 'TopProducts', subtitle: 'Most sold items'),
           if (isFeatureAvailable('analytics'))
@@ -316,9 +353,13 @@ class _ReportsPageState extends State<ReportsPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Check if DayBook - always allow access
+            // Daybook is free (no paid plan required) but must respect staff permission.
             if (viewName == 'DayBook') {
-              _navigateTo(viewName);
+              if (isAdmin || (_permissions[_getPermissionKey('daybook')] == true)) {
+                _navigateTo(viewName);
+              } else {
+                PermissionHelper.showPermissionDeniedDialog(context);
+              }
               return;
             }
 

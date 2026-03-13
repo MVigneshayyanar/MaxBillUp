@@ -26,10 +26,9 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
     'Sales & Billing': ['quotation', 'billHistory', 'creditNotes'],
     'Invoice Actions': ['editInvoice', 'returnInvoice', 'cancelInvoice'],
     'Customers': ['customerManagement', 'creditDetails'],
-    'Expenses': ['expenses'],
-    'Staff Access & Roles': ['staffManagement', 'analytics'],
-    'Reports': [
-      'daybook', 'salesSummary', 'salesReport', 'itemSalesReport',
+    'Expenses Management': ['expenses', 'expenseCategories', 'stockPurchase', 'vendors'],
+    'Growth+': [
+      'daybook', 'salesSummary', 'salesReport', 'analytics','itemSalesReport',
       'topCustomer', 'stockReport', 'lowStockProduct', 'topProducts',
       'topCategory', 'expensesReport', 'taxReport', 'staffSalesReport'
     ],
@@ -61,9 +60,14 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
       'quotation': 'Estimation / Quotation',
       'billHistory': 'Manage Bills',
       'creditNotes': 'Return & Refunds',
-      'customerManagement': 'Customers',
+      'customerManagement': 'Customer Management',
       'creditDetails': 'Credits & Dues',
       'staffManagement': 'Staff Access & Roles',
+      // Expenses (4 sub-items)
+      'expenses': 'Expenses',
+      'expenseCategories': 'Expense Category',
+      'stockPurchase': 'Product Purchase',
+      'vendors': 'Suppliers',
       // Reports
       'daybook': 'Daybook Today',
       'analytics': 'Business Summary',

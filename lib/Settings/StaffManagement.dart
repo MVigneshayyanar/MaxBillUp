@@ -430,9 +430,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           if (result != null) {
             await _firestoreService.updateDocument('users', staffId, {'permissions': result, 'updatedAt': FieldValue.serverTimestamp()});
             await FirebaseFirestore.instance.collection('users').doc(staffId).set({'permissions': result}, SetOptions(merge: true)).catchError((_) {});
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Permissions updated!'), backgroundColor: kGoogleGreen));
-            }
+
           }
         }
         else if (v == 'edit') _showEditStaffDialog(context, staffId, name, phone, email, role, isActive, permissions);
@@ -686,7 +684,34 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
 
   Map<String, bool> _getDefaultPermissions(String role) {
     bool isAdmin = role.toLowerCase().contains('admin');
-    return {'quotation': true, 'billHistory': true, 'creditNotes': isAdmin, 'customerManagement': true, 'expenses': isAdmin, 'creditDetails': isAdmin, 'staffManagement': isAdmin, 'analytics': isAdmin, 'daybook': isAdmin, 'salesSummary': isAdmin, 'salesReport': isAdmin, 'itemSalesReport': isAdmin, 'topCustomer': isAdmin, 'stockReport': isAdmin, 'lowStockProduct': isAdmin, 'topProducts': isAdmin, 'topCategory': isAdmin, 'expensesReport': isAdmin, 'taxReport': isAdmin, 'staffSalesReport': isAdmin, 'addProduct': isAdmin, 'addCategory': isAdmin};
+    return {
+      'quotation': true,
+      'billHistory': true,
+      'creditNotes': isAdmin,
+      'customerManagement': true,
+      // Expenses (split into 4 permissions matching Menu.dart sub items)
+      'expenses': isAdmin,
+      'expenseCategories': isAdmin,
+      'stockPurchase': isAdmin,
+      'vendors': isAdmin,
+      'creditDetails': isAdmin,
+      'staffManagement': isAdmin,
+      'analytics': isAdmin,
+      'daybook': isAdmin,
+      'salesSummary': isAdmin,
+      'salesReport': isAdmin,
+      'itemSalesReport': isAdmin,
+      'topCustomer': isAdmin,
+      'stockReport': isAdmin,
+      'lowStockProduct': isAdmin,
+      'topProducts': isAdmin,
+      'topCategory': isAdmin,
+      'expensesReport': isAdmin,
+      'taxReport': isAdmin,
+      'staffSalesReport': isAdmin,
+      'addProduct': isAdmin,
+      'addCategory': isAdmin,
+    };
   }
 
   Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.people_outline_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No staff members yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kBlack87, fontFamily: 'Lato'))]));
@@ -796,7 +821,11 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
       'billHistory': widget.currentPermissions['billHistory'] ?? false,
       'creditNotes': widget.currentPermissions['creditNotes'] ?? false,
       'customerManagement': widget.currentPermissions['customerManagement'] ?? false,
+      // Expenses split (keep legacy 'expenses' as the main expense entry)
       'expenses': widget.currentPermissions['expenses'] ?? false,
+      'expenseCategories': widget.currentPermissions['expenseCategories'] ?? false,
+      'stockPurchase': widget.currentPermissions['stockPurchase'] ?? false,
+      'vendors': widget.currentPermissions['vendors'] ?? false,
       'creditDetails': widget.currentPermissions['creditDetails'] ?? false,
       'staffManagement': widget.currentPermissions['staffManagement'] ?? false,
       'analytics': widget.currentPermissions['analytics'] ?? false,
@@ -826,10 +855,7 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
       final updates = {'permissions': perms, 'updatedAt': FieldValue.serverTimestamp()};
       await FirestoreService().updateDocument('users', widget.staffId, updates);
       await FirebaseFirestore.instance.collection('users').doc(widget.staffId).set(updates, SetOptions(merge: true)).catchError((_) {});
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permissions updated successfully'), backgroundColor: kGoogleGreen));
-        Navigator.pop(context);
-      }
+
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: kErrorColor));
     } finally {
@@ -856,7 +882,17 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
               padding: const EdgeInsets.all(16),
               children: [
                 _buildPermGroup('Management Tools', [
-                  'quotation', 'billHistory', 'creditNotes', 'customerManagement', 'expenses', 'creditDetails', 'staffManagement'
+                  'quotation',
+                  'billHistory',
+                  'creditNotes',
+                  'customerManagement',
+                  // Expenses (4 subdivisions)
+                  'expenses',
+                  'expenseCategories',
+                  'stockPurchase',
+                  'vendors',
+                  'creditDetails',
+                  'staffManagement'
                 ]),
                 const SizedBox(height: 16),
                 _buildPermGroup('Analytics & Reports', [
@@ -897,13 +933,17 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
       'quotation': 'Estimation / Quotation',
       'billHistory': 'Manage Bills',
       'creditNotes': 'Return & Refunds',
-      'customerManagement': 'Customers',
+      'customerManagement': 'Customer Management',
+      // Expenses (4 sub-items)
       'expenses': 'Expenses',
+      'expenseCategories': 'Expense Category',
+      'stockPurchase': 'Product Purchase',
+      'vendors': 'Suppliers',
       'creditDetails': 'Credits & Dues',
       'staffManagement': 'Staff Management',
       // Reports (matching Reports.dart tile titles)
       'daybook': 'Daybook Today',
-      'analytics': 'Business Summary',
+      'analytics': 'Growth+',
       'salesSummary': 'Business Insights',
       'salesReport': 'Sales Record',
       'itemSalesReport': 'Item Sales Report',
