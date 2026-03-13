@@ -95,7 +95,7 @@ flutter_native_splash:
   ios_content_mode: scaleAspectFill
   android: true
   ios: true
-  web: false
+  web: true
   android_12:
     color: "#4A5DF9"
     image: assets/max_splash_mic_padded.png
