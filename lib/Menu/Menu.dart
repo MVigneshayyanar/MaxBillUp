@@ -94,15 +94,12 @@ class _MenuPageState extends State<MenuPage> {
   bool get _canAccessDayBook => _isOwner || _hasPermission('daybook');
 
   List<String> get _visibleBannerImages {
+    // Security-first: do NOT show permission-gated banners until permissions are loaded.
+    // This prevents staff briefly seeing banners they don't have access to.
+    if (!_permissionsLoaded) return const <String>[];
+
     final images = <String>[_bannerImages[0]];
-
-    // If permissions aren't loaded yet, keep UI stable (avoid banner flicker).
-    if (!_permissionsLoaded) return _bannerImages;
-
-    if (_canAccessDayBook) {
-      images.add(_bannerImages[1]);
-    }
-
+    if (_canAccessDayBook) images.add(_bannerImages[1]);
     if (_isOwner) {
       images.add(_bannerImages[2]);
       images.add(_bannerImages[3]);
@@ -112,8 +109,8 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   bool _canSeeAnyExpensesGroup({required bool isAdmin, required bool isFullyLoaded}) {
-    // Until permissions + plan are loaded, keep UI visible to avoid flicker.
-    if (!isFullyLoaded) return true;
+    // Security-first: do not show until permissions + plan are loaded.
+    if (!isFullyLoaded) return false;
     if (isAdmin) return true;
     return _hasPermission('expenses') ||
         _hasPermission('expenseCategories') ||
@@ -290,8 +287,8 @@ class _MenuPageState extends State<MenuPage> {
         }
 
         bool isFeatureAvailable(String permission, {int requiredRank = 0}) {
-          // Until both provider and permission data are loaded, allow features to be visible (avoid flicker of locks)
-          if (!isFullyLoaded) return true;
+          // Security-first: do NOT show gated features until both plan + permissions are loaded.
+          if (!isFullyLoaded) return false;
           if (isAdmin) return true;
 
           // Daybook is a free feature (no plan rank requirement), but it should still respect staff permissions.
@@ -457,6 +454,10 @@ class _MenuPageState extends State<MenuPage> {
     final double bannerHeight = bannerWidth * (400 / 1125);
 
     final banners = _visibleBannerImages;
+
+    if (!_permissionsLoaded || banners.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),

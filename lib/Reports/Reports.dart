@@ -194,8 +194,9 @@ class _ReportsPageState extends State<ReportsPage> {
 
   Widget _buildMainReportsPage(BuildContext context, bool isFullyLoaded, bool isPaidPlan) {
     bool isFeatureAvailable(String permission) {
-      // If not fully loaded yet, assume feature is available (no lock shown)
-      if (!isFullyLoaded) return true;
+      // Security-first: do NOT show permission-gated tiles until permissions + plan are fully loaded.
+      // This prevents staff briefly seeing report tiles before the permission check completes.
+      if (!isFullyLoaded) return false;
 
       // Daybook is free (no paid plan needed), but it should still respect staff permissions.
       // Permission key used across the app is 'daybook' (lowercase).
