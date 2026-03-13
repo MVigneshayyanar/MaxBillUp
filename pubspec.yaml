@@ -88,7 +88,7 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#4A5DF9"
-  image: assets/Splash_Screen.png
+  image: assets/max_splash_mic_padded.png
   fullscreen: true
   android_gravity: center
   ios_content_mode: center
@@ -97,7 +97,7 @@ flutter_native_splash:
   web: false
   android_12:
     color: "#4A5DF9"
-    image: assets/Splash_Screen.png
+    image: assets/max_splash_mic_padded.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
