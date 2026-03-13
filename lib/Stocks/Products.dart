@@ -467,7 +467,7 @@ class _ProductsPageState extends State<ProductsPage> {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        isOut ? 'OUT OF STOCK' : 'QTY: ${AmountFormatter.format(stock)}',
+        isOut ? 'Out Of Stock' : 'QTY: ${AmountFormatter.format(stock)}',
         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.2),
       ),
     );
@@ -669,7 +669,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               onPressed: () async {
@@ -699,7 +699,7 @@ class _ProductsPageState extends State<ProductsPage> {
         title: const Text('Delete Product?', style: TextStyle(color: kBlack87, fontWeight: FontWeight.w800, fontSize: 18)),
         content: Text('Are you sure you want to delete "${data['itemName']}"? This action is permanent.', style: const TextStyle(color: kBlack54, fontSize: 14)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
             onPressed: () async {
@@ -722,7 +722,7 @@ class _ProductsPageState extends State<ProductsPage> {
         title: const Text('Delete Multiple Products?', style: TextStyle(color: kBlack87, fontWeight: FontWeight.w800, fontSize: 18)),
         content: Text('Are you sure you want to delete ${_selectedProductIds.length} products? This action is permanent and cannot be undone.', style: const TextStyle(color: kBlack54, fontSize: 14)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
             onPressed: () async {

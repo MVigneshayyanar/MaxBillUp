@@ -1275,7 +1275,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                       borderRadius: R.radius(context, 6),
                     ),
                     child: Text(
-                      'LOW STOCK',
+                      'Low Stock',
                       style: TextStyle(
                         fontSize: R.sp(context, 7),
                         fontWeight: FontWeight.w900,
@@ -1297,7 +1297,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                       borderRadius: R.radius(context, 6),
                     ),
                     child: Text(
-                      'OUT OF STOCK',
+                      'Out Of Stock',
                       style: TextStyle(
                         fontSize: R.sp(context, 7),
                         fontWeight: FontWeight.w900,
@@ -1319,7 +1319,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                       borderRadius: R.radius(context, 6),
                     ),
                     child: Text(
-                      'EXPIRED',
+                      'Expired',
                       style: TextStyle(
                         fontSize: R.sp(context, 7),
                         fontWeight: FontWeight.w900,

@@ -183,7 +183,7 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 4),
               action: SnackBarAction(
-                label: 'UPGRADE',
+                label: 'Upgrade',
                 textColor: kWhite,
                 onPressed: () {
                   // Navigate to subscription page
@@ -409,19 +409,19 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  _buildSectionHeader("IDENTITY"),
+                  _buildSectionHeader("Identity"),
                   _buildModernField(_nameCtrl, 'Full Name', HeroIcons.user, isMandatory: true),
                   const SizedBox(height: 16),
                   _buildModernField(_phoneCtrl, 'Phone Number', HeroIcons.phone, type: TextInputType.phone, isMandatory: true),
 
                   const SizedBox(height: 24),
-                  _buildSectionHeader("CREDENTIALS"),
+                  _buildSectionHeader("Credentials"),
                   _buildModernField(_emailCtrl, 'Email Address', HeroIcons.envelope, type: TextInputType.emailAddress, isMandatory: true),
                   const SizedBox(height: 16),
                   _buildModernField(_passCtrl, 'Temporary Password', HeroIcons.lockClosed, isPassword: true, isMandatory: true),
 
                   const SizedBox(height: 24),
-                  _buildSectionHeader("ASSIGNMENT"),
+                  _buildSectionHeader("Assignment"),
                   _buildModernDropdown(),
 
                   const SizedBox(height: 32),
@@ -567,7 +567,7 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
           child: ElevatedButton(
             onPressed: _isLoading ? null : _handleInvite,
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: const Text("SEND INVITATION", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+            child: const Text("Send Invitation", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
           ),
         ),
       ),

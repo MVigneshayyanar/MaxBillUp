@@ -89,7 +89,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     if (mounted) { Navigator.pop(context); Navigator.pop(context); }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: const Text("DELETE PERMANENTLY", style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
+                  child: const Text("Delete Permanently", style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -137,7 +137,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     if (mounted) Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: const Text("UPDATE DETAILS", style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
+                  child: const Text("Update Details", style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -191,7 +191,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     Navigator.pop(context);
                     await _processTransaction(amount, currentBalance, currentTotalSales, selectedMethod);
                   },
-                  child: const Text("CONFIRM CREDIT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w600)),
+                  child: const Text("Confirm Credit", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
               const SizedBox(height: 50),
@@ -423,7 +423,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     Navigator.pop(context);
                   },
                   child: const Text(
-                    'REMOVE',
+                    'Remove',
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
                       color: kErrorColor,
@@ -436,7 +436,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text(
-                  'CANCEL',
+                  'Cancel',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: kBlack54,
@@ -463,7 +463,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                   ),
                 ),
                 child: const Text(
-                  'SAVE',
+                  'Save',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -834,7 +834,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(lbl.toUpperCase(), style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+            Text(lbl, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
             const SizedBox(height: 6),
             Text("$_currencySymbol${amt.toStringAsFixed(2)}", style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w900)),
           ],
@@ -1011,21 +1011,21 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final mode = d['paymentMode'] ?? 'Unknown';
       final isCancelled = d['status'] == 'cancelled';
       if (isCancelled) {
-        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (CANCELLED)", debit: 0, credit: 0, balanceImpact: 0));
+        entries.add(LedgerEntry(date: date, type: 'Inv', desc: "Invoice #${d['invoiceNumber']} (CANCELLED)", debit: 0, credit: 0, balanceImpact: 0));
       } else if (mode == 'Cash' || mode == 'Online') {
         // Fully paid sale - sale in debit, no credit used, balance unchanged
-        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} ($mode)", debit: total, credit: 0, balanceImpact: 0));
+        entries.add(LedgerEntry(date: date, type: 'Inv', desc: "Invoice #${d['invoiceNumber']} ($mode)", debit: total, credit: 0, balanceImpact: 0));
       } else if (mode == 'Credit') {
         // Full credit sale - sale in debit, full amount as credit used
-        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (Credit)", debit: total, credit: total, balanceImpact: total));
+        entries.add(LedgerEntry(date: date, type: 'Inv', desc: "Invoice #${d['invoiceNumber']} (Credit)", debit: total, credit: total, balanceImpact: total));
       } else if (mode == 'Split') {
         final cashPaid = (d['cashReceived'] ?? 0.0).toDouble();
         final onlinePaid = (d['onlineReceived'] ?? 0.0).toDouble();
         final creditAmt = total - cashPaid - onlinePaid;
         // Split sale - sale in debit, only credit portion in credit column
-        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (Split)", debit: total, credit: creditAmt > 0 ? creditAmt : 0, balanceImpact: creditAmt > 0 ? creditAmt : 0));
+        entries.add(LedgerEntry(date: date, type: 'Inv', desc: "Invoice #${d['invoiceNumber']} (Split)", debit: total, credit: creditAmt > 0 ? creditAmt : 0, balanceImpact: creditAmt > 0 ? creditAmt : 0));
       } else {
-        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']}", debit: total, credit: 0, balanceImpact: 0));
+        entries.add(LedgerEntry(date: date, type: 'Inv', desc: "Invoice #${d['invoiceNumber']}", debit: total, credit: 0, balanceImpact: 0));
       }
     }
     for (var doc in credits.docs) {
@@ -1037,13 +1037,13 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final isCancelled = d['status'] == 'cancelled';
       
       if (isCancelled) {
-        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Cancelled Payment (${method.isNotEmpty ? method : 'Cash'})", debit: 0, credit: 0, balanceImpact: 0));
+        entries.add(LedgerEntry(date: date, type: 'Pay', desc: "Cancelled Payment (${method.isNotEmpty ? method : 'Cash'})", debit: 0, credit: 0, balanceImpact: 0));
       } else if (type == 'payment_received') {
         // Payment received - shows in debit (green), reduces outstanding
-        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Payment Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
+        entries.add(LedgerEntry(date: date, type: 'Pay', desc: "Payment Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
       } else if (type == 'settlement') {
         // Credit received/settled - shows in debit (green), reduces outstanding
-        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Credit Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
+        entries.add(LedgerEntry(date: date, type: 'Pay', desc: "Credit Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
       } else if (type == 'add_credit') {
         // Manual credit added - shows in credit (red), increases outstanding
         entries.add(LedgerEntry(date: date, type: 'CR', desc: "Manual Credit Added", debit: 0, credit: amt, balanceImpact: amt));
@@ -1072,11 +1072,11 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           color: kPrimaryColor.withValues(alpha: 0.05),
           child: const Row(children: [
-            Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-            Expanded(flex: 3, child: Text("PARTICULARS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-            Expanded(flex: 2, child: Text("DEBIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
-            Expanded(flex: 2, child: Text("CREDIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
-            Expanded(flex: 2, child: Text("BALANCE", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54))),
+            Expanded(flex: 2, child: Text("Date", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+            Expanded(flex: 3, child: Text("Particulars", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+            Expanded(flex: 2, child: Text("Debit", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
+            Expanded(flex: 2, child: Text("Credit", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
+            Expanded(flex: 2, child: Text("Balance", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54))),
           ]),
         ),
         Expanded(child: ListView.separated(
@@ -1189,7 +1189,7 @@ class CustomerBillsPage extends StatelessWidget {
                       if (creditCount > 0) Text("$creditCount on credit", style: const TextStyle(fontSize: 11, color: kErrorColor, fontWeight: FontWeight.w600)),
                     ]),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      const Text("TOTAL", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+                      const Text("Total", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
                       Text(totalAmount.toStringAsFixed(2), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
                     ]),
                   ],

@@ -447,7 +447,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
               SizedBox(height: R.sp(context, 24)),
               Row(
                 children: [
-                  Expanded(child: TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL', style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold)))),
+                  Expanded(child: TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold)))),
                   SizedBox(width: R.sp(context, 12)),
                   Expanded(
                     child: ElevatedButton(
@@ -667,7 +667,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                       Container(width: 1, height: R.sp(context, 16), color: kWhite.withOpacity(0.3)),
                       SizedBox(width: R.sp(context, 10)),
                       Text(
-                        widget.isEditMode ? 'Update' : (widget.editQuotationId != null ? context.tr('UPDATE') : context.tr('QUOTE')),
+                        widget.isEditMode ? 'Update' : (widget.editQuotationId != null ? context.tr('Update') : context.tr('Quote')),
                         style: TextStyle(color: kWhite, fontSize: R.sp(context, 13), fontWeight: FontWeight.w800, letterSpacing: 0.5),
                       ),
                     ],
@@ -774,7 +774,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
               child: Row(
                 children: [
                   Expanded(flex: 4, child: Text(context.tr('Product'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: kBlack87, letterSpacing: 0.5))),
-                  Expanded(flex: 2, child: Text(context.tr('QTY'), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('Qty'), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: kBlack87, letterSpacing: 0.5))),
                   Expanded(flex: 2, child: Text(context.tr('Price'), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: kBlack87, letterSpacing: 0.5))),
                   Expanded(flex: 2, child: Text(context.tr('Total'), textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: kBlack87, letterSpacing: 0.5))),
                 ],

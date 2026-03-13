@@ -412,7 +412,7 @@ class _AddProductPageState extends State<AddProductPage> {
                   },
                   icon: const HeroIcon(HeroIcons.arrowDownTray, size: 20),
                   label: const Text(
-                    'DOWNLOAD TEMPLATE',
+                    'Download Template',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -437,7 +437,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 child: ElevatedButton.icon(
                   icon: const HeroIcon(HeroIcons.arrowUpTray, size: 20),
                   label: const Text(
-                    'UPLOAD EXCEL',
+                    'Upload Excel',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -903,7 +903,7 @@ class _AddProductPageState extends State<AddProductPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10, left: 4),
       child: Text(
-        title.toUpperCase(),
+        title,
         style: const TextStyle(
           fontWeight: FontWeight.w900,
           fontSize: 10,
@@ -1258,7 +1258,7 @@ class _AddProductPageState extends State<AddProductPage> {
         title: const Text("Delete Unit?", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         content: Text('Are you sure you want to delete "$unitName"? Products using this unit will not be affected.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
               final storeId = await FirestoreService().getCurrentStoreId();
@@ -1287,7 +1287,7 @@ class _AddProductPageState extends State<AddProductPage> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: kErrorColor),
-            child: const Text("DELETE", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+            child: const Text("Delete", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -1472,7 +1472,7 @@ class _AddProductPageState extends State<AddProductPage> {
       },
     ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
               if (unitController.text.trim().isEmpty) return;
@@ -1483,7 +1483,7 @@ class _AddProductPageState extends State<AddProductPage> {
               if (mounted) { setState(() => _selectedStockUnit = unitController.text.trim()); Navigator.pop(ctx); }
             },
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-            child: const Text("ADD", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+            child: const Text("Add", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -1557,7 +1557,7 @@ class _AddProductPageState extends State<AddProductPage> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () {
               if(nameC.text.isNotEmpty && rateC.text.isNotEmpty) {
@@ -1566,7 +1566,7 @@ class _AddProductPageState extends State<AddProductPage> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-            child: const Text("CREATE", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+            child: const Text("Create", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -1587,7 +1587,7 @@ class _AddProductPageState extends State<AddProductPage> {
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: _isLoading
                 ? const CircularProgressIndicator(color: kWhite)
-                : Text(context.tr(widget.productId != null ? 'update' : 'add').toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                : Text(context.tr(widget.productId != null ? 'update' : 'add'), style: const TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
           ),
         ),
       ),

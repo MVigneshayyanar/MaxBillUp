@@ -329,7 +329,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: kErrorColor.withValues(alpha: 0.2)),
                       ),
-                      child: Text((data['paymentMode'] ?? 'Cash').toUpperCase(),
+                      child: Text((data['paymentMode'] ?? 'Cash'),
                           style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor)),
                     ),
                     const SizedBox(width: 8),
@@ -624,7 +624,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  _buildSectionLabel("BASIC DETAILS"),
+                  _buildSectionLabel("Basic Details"),
                   _buildExpenseTypeDropdown(),
                   const SizedBox(height: 16),
                   _buildAutocompleteExpenseName(),
@@ -642,7 +642,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                   const SizedBox(height: 20),
 
                   // ── Payment Mode chips (same as StockPurchase) ──────────
-                  _buildSectionLabel("PAYMENT MODE"),
+                  _buildSectionLabel("Payment Mode"),
                   Container(
                     decoration: BoxDecoration(
                       color: kWhite,
@@ -661,7 +661,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                   // ── Credit split (shown only when Credit is selected) ───
                   if (_paymentMode == 'Credit') ...[
                     const SizedBox(height: 20),
-                    _buildSectionLabel("PAID AMOUNT"),
+                    _buildSectionLabel("Paid Amount"),
                     _buildModernField(
                       _paidAmountController,
                       'Paid Amount',
@@ -714,7 +714,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
                       tilePadding: EdgeInsets.zero,
-                      title: _buildSectionLabel("ADDITIONAL INFORMATION"),
+                      title: _buildSectionLabel("Additional Information"),
                       children: [
                         _buildModernField(_advanceNotesController, "Advance Notes", HeroIcons.documentText, maxLines: 3),
                         const SizedBox(height: 16),
@@ -941,7 +941,7 @@ class ExpenseDetailsPage extends StatelessWidget {
                       Text(expenseData['expenseType'] ?? 'Uncategorized', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w600)),
                     ]),
                   ),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)), child: Text((expenseData['paymentMode'] ?? 'Cash').toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor))),
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)), child: Text((expenseData['paymentMode'] ?? 'Cash'), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor))),
                 ],
               ),
             ),
@@ -954,7 +954,7 @@ class ExpenseDetailsPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('TRANSACTION DETAILS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                    const Text('Transaction Details', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                     const SizedBox(height: 12),
                     _buildRow(HeroIcons.hashtag, 'Reference ID', expenseData['referenceNumber'] ?? 'N/A'),
                     _buildRow(HeroIcons.calendarDays, 'Date Recorded', dateStr),
@@ -963,7 +963,7 @@ class ExpenseDetailsPage extends StatelessWidget {
                     const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100)),
 
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      const Text('TOTAL EXPENSE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54)),
+                      const Text('Total Expense', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54)),
                       Text('$currencySymbol${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kErrorColor)),
                     ]),
 
@@ -992,7 +992,7 @@ class ExpenseDetailsPage extends StatelessWidget {
         title: const Text('Delete Expense?', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('Are you sure you want to delete this expense? This action cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
               await FirestoreService().deleteDocument('expenses', expenseId);

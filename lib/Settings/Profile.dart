@@ -442,7 +442,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   border: Border.all(color: (isExpired ? kErrorColor : (isPremium ? kGoogleGreen : kOrange)).withOpacity(0.2)),
                                 ),
                                 child: Text(
-                                  isExpired ? 'EXPIRED' : plan.toUpperCase(),
+                                  isExpired ? 'Expired' : plan,
                                   style: TextStyle(fontSize: 9, color: isExpired ? kErrorColor : (isPremium ? kGoogleGreen : kOrange), fontWeight: FontWeight.w900, letterSpacing: 0.5, fontFamily: 'Lato')
                                 ),
                               ),
@@ -606,7 +606,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     {'code': '+91', 'flag': '🇮🇳', 'name': 'India'},
     {'code': '+1', 'flag': '🇺🇸', 'name': 'United States'},
     {'code': '+44', 'flag': '🇬🇧', 'name': 'United Kingdom'},
-    {'code': '+971', 'flag': '🇦🇪', 'name': 'UAE'},
+    {'code': '+971', 'flag': '🇦🇪', 'name': 'Uae'},
     {'code': '+966', 'flag': '🇸🇦', 'name': 'Saudi Arabia'},
     {'code': '+974', 'flag': '🇶🇦', 'name': 'Qatar'},
     {'code': '+965', 'flag': '🇰🇼', 'name': 'Kuwait'},
@@ -792,8 +792,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     {'code': 'TND', 'symbol': 'د.ت', 'name': 'Tunisian Dinar'},
     {'code': 'TZS', 'symbol': 'TSh', 'name': 'Tanzanian Shilling'},
     {'code': 'UGX', 'symbol': 'USh', 'name': 'Ugandan Shilling'},
-    {'code': 'XAF', 'symbol': 'FCFA', 'name': 'Central African CFA Franc'},
-    {'code': 'XOF', 'symbol': 'CFA', 'name': 'West African CFA Franc'},
+    {'code': 'XAF', 'symbol': 'Fcfa', 'name': 'Central African CFA Franc'},
+    {'code': 'XOF', 'symbol': 'Cfa', 'name': 'West African CFA Franc'},
     {'code': 'ZAR', 'symbol': 'R', 'name': 'South African Rand'},
     {'code': 'ZMW', 'symbol': 'ZK', 'name': 'Zambian Kwacha'},
     {'code': 'ZWL', 'symbol': 'Z\$', 'name': 'Zimbabwean Dollar'},
@@ -2293,7 +2293,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
                   unselectedLabelColor: kBlack54,
                   labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.3),
                   tabs: const [
-                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.print_rounded, size: 14), SizedBox(width: 4), Text('THERMAL')])),
+                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.print_rounded, size: 14), SizedBox(width: 4), Text('Thermal')])),
                     Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.picture_as_pdf_rounded, size: 14), SizedBox(width: 4), Text('A4/PDF')])),
                     Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.tag_rounded, size: 14), SizedBox(width: 4), Text('DOC NO.')])),
                   ],
@@ -2321,7 +2321,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
       children: [
         _buildInfoCard('Thermal Receipt', 'Small paper print for POS printers', Icons.print_rounded),
         const SizedBox(height: 16),
-        _buildSectionLabel('IDENTITY & BRANDING'),
+        _buildSectionLabel('Identity & Branding'),
         _SettingsGroup(children: [
           _SwitchTile('Show Header', _thermalShowHeader, (v) { setState(() => _thermalShowHeader = v); _saveSettings(); }),
           _SwitchTile('Show Logo', _thermalShowLogo, (v) { setState(() => _thermalShowLogo = v); _saveSettings(); }),
@@ -2330,14 +2330,14 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
           _SwitchTile('Show License Number', _thermalShowLicense, (v) { setState(() => _thermalShowLicense = v); _saveSettings(); }, showDivider: false),
         ]),
         const SizedBox(height: 16),
-        _buildSectionLabel('TOTALS & TAXES'),
+        _buildSectionLabel('Totals & Taxes'),
         _SettingsGroup(children: [
           _SwitchTile('Total Item Quantity', _thermalShowTotalItemQuantity, (v) { setState(() => _thermalShowTotalItemQuantity = v); _saveSettings(); }),
           _SwitchTile('Tax Details', _thermalShowTaxDetails, (v) { setState(() => _thermalShowTaxDetails = v); _saveSettings(); }),
           _SwitchTile('You Saved', _thermalShowYouSaved, (v) { setState(() => _thermalShowYouSaved = v); _saveSettings(); }, showDivider: false),
         ]),
         const SizedBox(height: 16),
-        _buildSectionLabel('FOOTER'),
+        _buildSectionLabel('Footer'),
         _buildTextFieldSection('Sale Invoice Text', _thermalSaleInvoiceText, (v) { _thermalSaleInvoiceText = v; _saveSettings(); }),
         const SizedBox(height: 24),
       ],
@@ -2351,7 +2351,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
         _buildInfoCard('A4 / Pdf Invoice', 'Full-page invoice for print or sharing', Icons.picture_as_pdf_rounded),
         const SizedBox(height: 16),
         // Color Theme Selector
-        _buildSectionLabel('COLOR THEME'),
+        _buildSectionLabel('Color Theme'),
         Container(
           decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
           padding: const EdgeInsets.all(16),
@@ -2387,7 +2387,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
           ),
         ),
         const SizedBox(height: 16),
-        _buildSectionLabel('IDENTITY & BRANDING'),
+        _buildSectionLabel('Identity & Branding'),
         _SettingsGroup(children: [
           _SwitchTile('Show Header', _a4ShowHeader, (v) { setState(() => _a4ShowHeader = v); _saveSettings(); }),
           _SwitchTile('Show Logo', _a4ShowLogo, (v) { setState(() => _a4ShowLogo = v); _saveSettings(); }),
@@ -2397,14 +2397,14 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
           _SwitchTile('Show License Number', _a4ShowLicense, (v) { setState(() => _a4ShowLicense = v); _saveSettings(); }, showDivider: false),
         ]),
         const SizedBox(height: 16),
-        _buildSectionLabel('TOTALS & TAXES'),
+        _buildSectionLabel('Totals & Taxes'),
         _SettingsGroup(children: [
           _SwitchTile('Total Item Quantity', _a4ShowTotalItemQuantity, (v) { setState(() => _a4ShowTotalItemQuantity = v); _saveSettings(); }),
           _SwitchTile('Tax Details', _a4ShowTaxDetails, (v) { setState(() => _a4ShowTaxDetails = v); _saveSettings(); }),
           _SwitchTile('You Saved', _a4ShowYouSaved, (v) { setState(() => _a4ShowYouSaved = v); _saveSettings(); }, showDivider: false),
         ]),
         const SizedBox(height: 16),
-        _buildSectionLabel('FOOTER'),
+        _buildSectionLabel('Footer'),
         _SettingsGroup(children: [_SwitchTile('Print Signature', _a4ShowSignature, (v) { setState(() => _a4ShowSignature = v); _saveSettings(); }, showDivider: false)]),
         const SizedBox(height: 16),
         _buildTextFieldSection('Sale Invoice Text', _a4SaleInvoiceText, (v) { _a4SaleInvoiceText = v; _saveSettings(); }),
@@ -3015,7 +3015,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
           leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack),
         ),
         body: ListView(padding: const EdgeInsets.all(16), children: [
-          _buildSectionLabel('LANGUAGE'),
+          _buildSectionLabel('Language'),
           Container(
             decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
             child: ListTile(
@@ -3027,7 +3027,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildSectionLabel('APPEARANCE'),
+          _buildSectionLabel('Appearance'),
           Container(
             decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
             child: ListTile(
@@ -3177,7 +3177,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (_selectedDevice != null) Container(padding: const EdgeInsets.all(16), margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGoogleGreen.withOpacity(0.3))), child: Row(children: [const Icon(Icons.print_rounded, color: kGoogleGreen, size: 28), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("ACTIVE PRINTER", style: TextStyle(fontSize: 9, color: kGoogleGreen, fontWeight: FontWeight.w900, letterSpacing: 0.5)), Text(_selectedDevice!.platformName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kBlack87))])), IconButton(onPressed: () => setState(() => _selectedDevice = null), icon: const Icon(Icons.delete_sweep_rounded, color: kErrorColor))])),
+          if (_selectedDevice != null) Container(padding: const EdgeInsets.all(16), margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGoogleGreen.withOpacity(0.3))), child: Row(children: [const Icon(Icons.print_rounded, color: kGoogleGreen, size: 28), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Active Printer", style: TextStyle(fontSize: 9, color: kGoogleGreen, fontWeight: FontWeight.w900, letterSpacing: 0.5)), Text(_selectedDevice!.platformName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kBlack87))])), IconButton(onPressed: () => setState(() => _selectedDevice = null), icon: const Icon(Icons.delete_sweep_rounded, color: kErrorColor))])),
 
           // Printer Width Setting
           Container(
@@ -3187,7 +3187,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("PAPER WIDTH", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
+                const Text("Paper Width", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -3240,13 +3240,13 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
             ),
           ),
 
-          Text("PAIRED DEVICES", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
+          Text("Paired Devices", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
           const SizedBox(height: 12),
           _buildDeviceList(),
           const SizedBox(height: 24),
 
           // Number of Copies Section
-          const Text("PRINT COPIES", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
+          const Text("Print Copies", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
@@ -3294,7 +3294,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
           _SettingsGroup(children: [_SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) async { (await SharedPreferences.getInstance()).setBool('enable_auto_print', v); setState(() => _enableAutoPrint = v); }, showDivider: false)]),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(onPressed: _isScanning ? null : _scanForDevices, backgroundColor: kPrimaryColor, icon: _isScanning ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.bluetooth_searching_rounded,color: kWhite), label: Text(_isScanning ? "SCANNING..." : "SCAN FOR PRINTERS", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12,color: kWhite))),
+      floatingActionButton: FloatingActionButton.extended(onPressed: _isScanning ? null : _scanForDevices, backgroundColor: kPrimaryColor, icon: _isScanning ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.bluetooth_searching_rounded,color: kWhite), label: Text(_isScanning ? "SCANNING..." : "Scan For Printers", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12,color: kWhite))),
     );
   }
 
@@ -3346,7 +3346,7 @@ class ReceiptSettingsPage extends StatelessWidget {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-          title: const Text("RECEIPT SETTINGS", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.5)),
+          title: const Text("Receipt Settings", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.5)),
           backgroundColor: kPrimaryColor,
           centerTitle: true,
           elevation: 0,
@@ -3403,7 +3403,7 @@ class ReceiptSettingsPage extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 40),
-                    _buildSectionHeader("OPERATIONAL STATUS"),
+                    _buildSectionHeader("Operational Status"),
                     const SizedBox(height: 16),
                     _buildStatusItem("Thermal Engine", "Ready", true),
                     _buildStatusItem("Cloud Synchronization", "Active", true),
@@ -3501,7 +3501,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
   bool _saving = false;
   int _selectedTemplateIndex = 0;
 
-  final _docTitleCtrl = TextEditingController(text: 'INVOICE');
+  final _docTitleCtrl = TextEditingController(text: 'Invoice');
   bool _showLogo = true;
   bool _showLocation = true;
   bool _showEmail = true;
@@ -3574,7 +3574,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _selectedTemplateIndex = prefs.getInt('invoice_template') ?? 0;
-      _docTitleCtrl.text = prefs.getString('receipt_header') ?? 'INVOICE';
+      _docTitleCtrl.text = prefs.getString('receipt_header') ?? 'Invoice';
       _showLogo = prefs.getBool('receipt_show_logo') ?? true;
       _showLocation = prefs.getBool('receipt_show_location') ?? true;
       _showEmail = prefs.getBool('receipt_show_email') ?? true;
@@ -3694,7 +3694,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-        title: const Text("DESIGN ENGINE", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 2.0)),
+        title: const Text("Design Engine", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 2.0)),
         backgroundColor: kPrimaryColor,
         centerTitle: true,
         elevation: 0,
@@ -3706,7 +3706,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                _buildSectionHeader("AESTHETIC PRESET"),
+                _buildSectionHeader("Aesthetic Preset"),
                 const SizedBox(height: 16),
                 _buildTemplateGrid(),
                 const SizedBox(height: 40),
@@ -4196,7 +4196,7 @@ class _LanguagePageState extends State<LanguagePage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
-                          child: Text(lang['code']!.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: isComingSoon ? kBlack54 : (isSelected ? kPrimaryColor : kBlack54))),
+                          child: Text(lang['code']!, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: isComingSoon ? kBlack54 : (isSelected ? kPrimaryColor : kBlack54))),
                         ),
                       ),
                       title: Row(
@@ -4294,7 +4294,7 @@ class _ThemePageState extends State<ThemePage> {
           ),
           const Padding(
             padding: EdgeInsets.only(bottom: 12, left: 4),
-            child: Text('SELECT THEME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5, fontFamily: 'NotoSans')),
+            child: Text('Select Theme', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5, fontFamily: 'NotoSans')),
           ),
           Container(
             decoration: BoxDecoration(

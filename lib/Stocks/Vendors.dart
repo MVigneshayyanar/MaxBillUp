@@ -204,14 +204,14 @@ class _VendorsPageState extends State<VendorsPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStat('VENDORS', _vendors.length.toString(), HeroIcons.users),
+                _buildStat('Vendors', _vendors.length.toString(), HeroIcons.users),
                 _buildStat(
-                  'TOTAL SPENT',
+                  'Total Spent',
                   '$_currencySymbol${_vendors.fold(0.0, (sum, v) => sum + ((v['totalPurchases'] ?? 0).toDouble())).toStringAsFixed(0)}',
                   HeroIcons.banknotes,
                 ),
                 _buildStat(
-                  'BILLS',
+                  'Bills',
                   _vendors.fold(0, (sum, v) => sum + ((v['purchaseCount'] ?? 0) as int)).toString(),
                   HeroIcons.documentText,
                 ),
@@ -305,7 +305,7 @@ class _VendorsPageState extends State<VendorsPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(color: kGoogleGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                    child: const Text('SUPPLIER', style: TextStyle(fontSize: 8, color: kGoogleGreen, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                    child: const Text('Supplier', style: TextStyle(fontSize: 8, color: kGoogleGreen, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                   )
                 else if (lastPurchaseText.isNotEmpty)
                   Text('Last: $lastPurchaseText', style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
@@ -424,12 +424,12 @@ class _VendorsPageState extends State<VendorsPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildSectionLabel("IDENTITY"),
+              _buildSectionLabel("Identity"),
               _buildDialogField(nameCtrl, 'Vendor Name *', HeroIcons.user),
               const SizedBox(height: 12),
               _buildDialogField(phoneCtrl, 'Phone Number', HeroIcons.devicePhoneMobile, type: TextInputType.phone),
               const SizedBox(height: 20),
-              _buildSectionLabel("TAX & LOCATION"),
+              _buildSectionLabel("Tax & Location"),
               _buildDialogField(gstinCtrl, 'GSTIN (Optional)', HeroIcons.documentText),
               const SizedBox(height: 12),
               _buildDialogField(addressCtrl, 'Physical Address', HeroIcons.mapPin, maxLines: 2),
@@ -437,7 +437,7 @@ class _VendorsPageState extends State<VendorsPage> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () async {
@@ -456,7 +456,7 @@ class _VendorsPageState extends State<VendorsPage> {
                 if (mounted) { Navigator.pop(context); _loadVendors(); }
               } catch (e) { debugPrint(e.toString()); }
             },
-            child: const Text('ADD VENDOR', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+            child: const Text('Add Vendor', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
           ),
         ],
       ),
@@ -476,12 +476,12 @@ class _VendorsPageState extends State<VendorsPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildSectionLabel("IDENTITY"),
+              _buildSectionLabel("Identity"),
               _buildDialogField(nameCtrl, 'Vendor Name', HeroIcons.user),
               const SizedBox(height: 12),
               _buildDialogField(phoneCtrl, 'Phone Number', HeroIcons.devicePhoneMobile, type: TextInputType.phone),
               const SizedBox(height: 20),
-              _buildSectionLabel("TAX & LOCATION"),
+              _buildSectionLabel("Tax & Location"),
               _buildDialogField(gstinCtrl, 'GSTIN', HeroIcons.documentText),
               const SizedBox(height: 12),
               _buildDialogField(addressCtrl, 'Physical Address', HeroIcons.mapPin, maxLines: 2),
@@ -489,7 +489,7 @@ class _VendorsPageState extends State<VendorsPage> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () async {
@@ -522,7 +522,7 @@ class _VendorsPageState extends State<VendorsPage> {
         title: const Text('Remove Vendor?', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87)),
         content: Text('Are you sure you want to remove "${vendor['name']}"? This action cannot be undone.', style: const TextStyle(color: kBlack54, fontSize: 13)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
           ElevatedButton(
             onPressed: () async {
               try {
@@ -708,8 +708,8 @@ class _VendorDetailsPageState extends State<VendorDetailsPage> {
                 const Divider(height: 20, color: kGreyBg),
                 // Summary stats row
                 Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                  _buildStat(_purchases.length == 1 ? 'BILL' : 'BILLS', _isLoading ? purchaseCount.toString() : _purchases.length.toString(), kPrimaryColor),
-                  _buildStat('TOTAL SPENT', '${widget.currencySymbol}${totalPurchases.toStringAsFixed(0)}', kGoogleGreen),
+                  _buildStat(_purchases.length == 1 ? 'Bill' : 'Bills', _isLoading ? purchaseCount.toString() : _purchases.length.toString(), kPrimaryColor),
+                  _buildStat('Total Spent', '${widget.currencySymbol}${totalPurchases.toStringAsFixed(0)}', kGoogleGreen),
                 ]),
               ]),
             ),

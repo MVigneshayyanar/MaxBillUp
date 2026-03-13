@@ -299,7 +299,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w800)),
+            child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w800)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -340,7 +340,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('CONTINUE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+            child: const Text('Continue', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -1028,7 +1028,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               child: Row(
                 children: [
                   Expanded(flex: 4, child: Text('Product', style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: Colors.black))),
-                  Expanded(flex: 2, child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: Colors.black))),
+                  Expanded(flex: 2, child: Text('Qty', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: Colors.black))),
                   Expanded(flex: 2, child: Text('Price', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: Colors.black))),
                   Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: Colors.black))),
                 ],

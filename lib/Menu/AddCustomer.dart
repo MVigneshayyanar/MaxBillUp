@@ -501,7 +501,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                   },
                   icon: const HeroIcon(HeroIcons.arrowDownTray, size: 20),
                   label: const Text(
-                    'DOWNLOAD TEMPLATE',
+                    'Download Template',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -526,7 +526,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                 child: ElevatedButton.icon(
                   icon: const HeroIcon(HeroIcons.arrowUpTray, size: 20),
                   label: const Text(
-                    'UPLOAD EXCEL',
+                    'Upload Excel',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -864,7 +864,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54)),
+            child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -873,7 +873,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('DELETE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+            child: const Text('Delete', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -1171,7 +1171,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Text(
-        title.toUpperCase(),
+        title,
         style: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w900,

@@ -106,7 +106,7 @@ class _QuotationDetailPageState extends State<QuotationDetailPage> {
               ),
               const SizedBox(height: 20),
               
-              const Text('ITEMS LIST', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+              const Text('Items List', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
               const SizedBox(height: 10),
               ...items.map((item) {
                 final name = item['name'] ?? 'Unknown Item';
@@ -166,7 +166,7 @@ class _QuotationDetailPageState extends State<QuotationDetailPage> {
                       padding: EdgeInsets.symmetric(vertical: 8),
                       child: Divider(height: 1, color: kGrey200, thickness: 1),
                     ),
-                    _buildPriceRow('NET TOTAL', total, isBold: true),
+                    _buildPriceRow('Net Total', total, isBold: true),
                   ],
                 ),
               ),
@@ -187,7 +187,7 @@ class _QuotationDetailPageState extends State<QuotationDetailPage> {
                                   side: const BorderSide(color: kPrimaryColor, width: 2),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 ),
-                                child: const Text('EDIT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                                child: const Text('Edit', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
                               ),
                             ),
                           ),
@@ -208,7 +208,7 @@ class _QuotationDetailPageState extends State<QuotationDetailPage> {
                                   duration: const Duration(milliseconds: 200),
                                   child: _isProcessing
                                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2))
-                                      : const Text('CONVERT TO INVOICE', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kWhite, letterSpacing: 0.5)),
+                                      : const Text('Convert To Invoice', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kWhite, letterSpacing: 0.5)),
                                 ),
                               ),
                             ),
@@ -245,7 +245,7 @@ class _QuotationDetailPageState extends State<QuotationDetailPage> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(color: active ? kPrimaryColor.withOpacity(0.1) : kGreyBg, borderRadius: BorderRadius.circular(20)),
-          child: Text(active ? 'OPEN' : 'BILLED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: active ? kPrimaryColor : kBlack54)),
+          child: Text(active ? 'Open' : 'Billed', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: active ? kPrimaryColor : kBlack54)),
         ),
       ],
     );
@@ -335,7 +335,7 @@ class _QuotationDetailPageState extends State<QuotationDetailPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w800)),
+            child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w800)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -343,7 +343,7 @@ class _QuotationDetailPageState extends State<QuotationDetailPage> {
               _deleteQuotation(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text('DELETE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+            child: const Text('Delete', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
           ),
         ],
       ),

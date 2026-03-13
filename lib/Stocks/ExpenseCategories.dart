@@ -75,8 +75,8 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
             unselectedLabelColor: kWhite.withOpacity(0.7),
             labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5),
             tabs: [
-              Tab(text: context.tr('Types').toUpperCase()),
-              Tab(text: context.tr('expense_names').toUpperCase()),
+              Tab(text: context.tr('Types')),
+              Tab(text: context.tr('expense_names')),
             ],
           ),
         ),
@@ -236,7 +236,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: kPrimaryColor.withValues(alpha: 0.2))),
-                                      child: const Text('EDIT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                                      child: const Text('Edit', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                                     ),
                                     const SizedBox(width: 8),
                                     const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
@@ -385,7 +385,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(color: kOrange.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: kOrange.withValues(alpha: 0.2))),
-                                      child: const Text('EDIT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kOrange)),
+                                      child: const Text('Edit', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kOrange)),
                                     ),
                                     const SizedBox(width: 8),
                                     const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
@@ -429,7 +429,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionLabel("QUICK SELECT"),
+                    _buildSectionLabel("Quick Select"),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -451,13 +451,13 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                       }).toList(),
                     ),
                     const SizedBox(height: 24),
-                    _buildSectionLabel("CATEGORY IDENTITY"),
+                    _buildSectionLabel("Category Identity"),
                     _buildDialogField(nameController, 'Category Name', HeroIcons.tag),
                   ],
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
                 ElevatedButton(
                   onPressed: () async {
                     if (nameController.text.trim().isEmpty) return;
@@ -871,8 +871,8 @@ class _ExpenseNameDetailsPageState extends State<ExpenseNameDetailsPage> {
                 ]),
                 const Divider(height: 20, color: kGreyBg),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                  _buildStat('EXPENSES', _expenses.length.toString(), kPrimaryColor),
-                  _buildStat('TOTAL', '$_currencySymbol${totalAmount.toStringAsFixed(0)}', kErrorColor),
+                  _buildStat('Expenses', _expenses.length.toString(), kPrimaryColor),
+                  _buildStat('Total', '$_currencySymbol${totalAmount.toStringAsFixed(0)}', kErrorColor),
                 ]),
               ]),
             ),
@@ -944,7 +944,7 @@ class _ExpenseNameDetailsPageState extends State<ExpenseNameDetailsPage> {
                               child: const Row(mainAxisSize: MainAxisSize.min, children: [
                                 HeroIcon(HeroIcons.trash, size: 12, color: kErrorColor),
                                 SizedBox(width: 4),
-                                Text('DELETE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor, letterSpacing: 0.3)),
+                                Text('Delete', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor, letterSpacing: 0.3)),
                               ]),
                             ),
                           ),

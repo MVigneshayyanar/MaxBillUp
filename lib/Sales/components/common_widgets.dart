@@ -191,7 +191,7 @@ class CommonWidgets {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54)),
+            child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -230,7 +230,7 @@ class CommonWidgets {
               onSuccess(orderName, resultOrderId);
             },
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: Text(savedOrderId != null ? 'UPDATE ORDER' : 'SAVE ORDER',
+            child: Text(savedOrderId != null ? 'Update Order' : 'Save Order',
                 style: const TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
           ),
         ],
@@ -369,7 +369,7 @@ class CommonWidgets {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('SELECT CUSTOMER', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
+                      const Text('Select Customer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
                       IconButton(onPressed: () => Navigator.pop(ctx), icon: const HeroIcon(HeroIcons.xMark, color: kBlack54)),
                     ],
                   ),
@@ -522,7 +522,7 @@ class CommonWidgets {
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: kWhite,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: const Text('NEW CUSTOMER', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+          title: const Text('New Customer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -594,7 +594,7 @@ class CommonWidgets {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               onPressed: () async {
@@ -634,7 +634,7 @@ class CommonWidgets {
                   onCustomerSelected(phone, name, gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim());
                 }
               },
-              child: Text(customerExists ? 'UPDATE CUSTOMER' : 'ADD CUSTOMER', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+              child: Text(customerExists ? 'Update Customer' : 'Add Customer', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
             ),
           ],
         ),
@@ -664,7 +664,7 @@ class CommonWidgets {
               height: 550, padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('IMPORT CONTACT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)), IconButton(onPressed: () => Navigator.pop(ctx), icon: const HeroIcon(HeroIcons.xMark))]),
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Import Contact', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)), IconButton(onPressed: () => Navigator.pop(ctx), icon: const HeroIcon(HeroIcons.xMark))]),
                   Container(decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)), child: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'Search...', prefixIcon: Padding(
                     padding: EdgeInsets.all(12.0),
                     child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
@@ -729,7 +729,7 @@ class CommonWidgets {
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: kWhite,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: const Text('VERIFY CUSTOMER', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          title: const Text('Verify Customer', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -799,7 +799,7 @@ class CommonWidgets {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               onPressed: () async {
@@ -836,7 +836,7 @@ class CommonWidgets {
                   onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim());
                 }
               },
-              child: Text(customerExists ? 'UPDATE' : 'CONFIRM', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+              child: Text(customerExists ? 'Update' : 'Confirm', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
             ),
           ],
         ),

@@ -135,7 +135,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('DISCARD', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
+            child: const Text('Discard', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
           ),
         ],
       ),
@@ -223,7 +223,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                     Row(children: [
                       const Icon(Icons.bookmark_rounded, size: 13, color: kPrimaryColor),
                       const SizedBox(width: 5),
-                      const Text('SAVED DRAFT',
+                      const Text('Saved Draft',
                           style: TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 11, letterSpacing: 0.5)),
                     ]),
                     Text(timeStr.isNotEmpty ? '$dateStr • $timeStr' : dateStr,
@@ -252,7 +252,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('ITEMS', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                        const Text('Items', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
                         Text('${items.length} ${items.length == 1 ? 'item' : 'items'}',
                             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
                       ],

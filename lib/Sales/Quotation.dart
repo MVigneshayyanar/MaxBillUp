@@ -487,10 +487,10 @@ class _QuotationPageState extends State<QuotationPage> {
           decoration: BoxDecoration(color: kGreyBg, borderRadius: R.radius(context, 12)),
           child: Row(
             children: [
-              Expanded(flex: 3, child: Text('PRODUCT', style: TextStyle(fontSize: R.sp(context, 10), fontWeight: FontWeight.w800, color: kBlack54))),
-              Expanded(flex: 2, child: Text('QTY/RATE', style: TextStyle(fontSize: R.sp(context, 10), fontWeight: FontWeight.w800, color: kBlack54))),
-              Expanded(flex: 2, child: Text('TOTAL', style: TextStyle(fontSize: R.sp(context, 10), fontWeight: FontWeight.w800, color: kBlack54))),
-              Expanded(flex: 3, child: Text('DISC', textAlign: TextAlign.right, style: TextStyle(fontSize: R.sp(context, 10), fontWeight: FontWeight.w800, color: kBlack54))),
+              Expanded(flex: 3, child: Text('Product', style: TextStyle(fontSize: R.sp(context, 10), fontWeight: FontWeight.w800, color: kBlack54))),
+              Expanded(flex: 2, child: Text('Qty/rate', style: TextStyle(fontSize: R.sp(context, 10), fontWeight: FontWeight.w800, color: kBlack54))),
+              Expanded(flex: 2, child: Text('Total', style: TextStyle(fontSize: R.sp(context, 10), fontWeight: FontWeight.w800, color: kBlack54))),
+              Expanded(flex: 3, child: Text('Disc', textAlign: TextAlign.right, style: TextStyle(fontSize: R.sp(context, 10), fontWeight: FontWeight.w800, color: kBlack54))),
             ],
           ),
         ),
@@ -587,7 +587,7 @@ class _QuotationPageState extends State<QuotationPage> {
                 duration: const Duration(milliseconds: 200),
                 child: _isProcessing
                     ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2.5))
-                    : Text(widget.editQuotationId != null ? 'UPDATE QUOTATION' : 'GENERATE QUOTATION', style: TextStyle(color: kWhite, fontSize: R.sp(context, 15), fontWeight: FontWeight.w700)),
+                    : Text(widget.editQuotationId != null ? 'Update Quotation' : 'Generate Quotation', style: TextStyle(color: kWhite, fontSize: R.sp(context, 15), fontWeight: FontWeight.w700)),
               ),
             ),
           ),

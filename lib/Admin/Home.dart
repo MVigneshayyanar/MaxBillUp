@@ -41,7 +41,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-        title: const Text('ADMIN CONSOLE',
+        title: const Text('Admin Console',
             style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
         backgroundColor: kPrimaryColor,
         elevation: 0,
@@ -89,8 +89,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 unselectedLabelColor: kBlack54,
                 labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
                 tabs: const [
-                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [HeroIcon(HeroIcons.buildingStorefront, size: 16), SizedBox(width: 8), Text('STORES')])),
-                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [HeroIcon(HeroIcons.bookOpen, size: 16), SizedBox(width: 8), Text('KNOWLEDGE')])),
+                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [HeroIcon(HeroIcons.buildingStorefront, size: 16), SizedBox(width: 8), Text('Stores')])),
+                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [HeroIcon(HeroIcons.bookOpen, size: 16), SizedBox(width: 8), Text('Knowledge')])),
                 ],
               ),
             ),
@@ -216,7 +216,7 @@ class StoresTab extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: isPremium ? Colors.amber.shade100 : kGrey200),
       ),
-      child: Text(plan.toUpperCase(),
+      child: Text(plan,
           style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: c, letterSpacing: 0.5)),
     );
   }
@@ -235,7 +235,7 @@ class StoresTab extends StatelessWidget {
         children: [
           Container(width: 6, height: 6, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
           const SizedBox(width: 8),
-          Text(active ? 'ACTIVE' : 'DEACTIVATED',
+          Text(active ? 'Active' : 'Deactivated',
               style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: c, letterSpacing: 0.5)),
         ],
       ),
@@ -299,7 +299,7 @@ class KnowledgeTab extends StatelessWidget {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        label: const Text('POST ARTICLE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+        label: const Text('Post Article', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
         icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 20),
       ),
     );
@@ -315,7 +315,7 @@ class KnowledgeTab extends StatelessWidget {
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(docId == null ? 'NEW ARTICLE' : 'EDIT ARTICLE',
+        title: Text(docId == null ? 'New Article' : 'Edit Article',
             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
         content: SingleChildScrollView(
           child: Column(
@@ -332,14 +332,14 @@ class KnowledgeTab extends StatelessWidget {
         actions: [
           if (docId != null)
             TextButton(
-                child: const Text('DELETE', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 12)),
+                child: const Text('Delete', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 12)),
                 onPressed: () async {
                   await FirebaseFirestore.instance.collection('knowledge').doc(docId).delete();
                   if (context.mounted) Navigator.pop(context);
                 }
             ),
           TextButton(
-              child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 12)),
+              child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 12)),
               onPressed: () => Navigator.pop(context)
           ),
           ElevatedButton(
@@ -456,7 +456,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-        title: Text(widget.storeData['businessName']?.toUpperCase() ?? 'STORE DETAILS',
+        title: Text(widget.storeData['businessName'] ?? 'Store Details',
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5)),
         backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
         leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
@@ -492,7 +492,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Text('PREVIEW REVENUE', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                  const Text('Preview Revenue', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
                   const SizedBox(height: 4),
                   const Text('0.00', style: TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w900)),
                 ],
@@ -512,7 +512,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
             ),
             const SizedBox(height: 24),
 
-            _buildSectionLabel('BUSINESS IDENTITY'),
+            _buildSectionLabel('Business Identity'),
             Container(
               decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
               child: Column(
@@ -521,7 +521,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
                   _detailRow(HeroIcons.envelope, 'System Email', storeData['ownerEmail']),
                   _detailRow(HeroIcons.phone, 'Direct Phone', storeData['ownerPhone'] ?? storeData['businessPhone']),
                   _detailRow(HeroIcons.mapPin, 'Business Address', storeData['businessLocation']),
-                  _detailRow(HeroIcons.documentText, 'TAX', storeData['gstin']),
+                  _detailRow(HeroIcons.documentText, 'Tax', storeData['gstin']),
                   _detailRow(HeroIcons.briefcase, 'License', storeData['licenseNumber'], isLast: true),
 
 
@@ -530,7 +530,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
             ),
             const SizedBox(height: 24),
 
-            _buildSectionLabel('SUBSCRIPTION DETAILS'),
+            _buildSectionLabel('Subscription Details'),
             Container(
               decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
               child: Column(
@@ -580,7 +580,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
           decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)),
           child: HeroIcon(icon, color: kPrimaryColor, size: 18),
         ),
-        title: Text(label.toUpperCase(), style: const TextStyle(fontSize: 8, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        title: Text(label, style: const TextStyle(fontSize: 8, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
         subtitle: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
         trailing: IconButton(
           icon: const HeroIcon(HeroIcons.pencil, size: 18, color: kPrimaryColor),
@@ -657,7 +657,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
         builder: (context, setState) => AlertDialog(
           backgroundColor: kWhite,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: const Text('CHANGE PLAN', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
+          title: const Text('Change Plan', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,7 +678,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
           ),
           actions: [
             TextButton(
-              child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 12)),
+              child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 12)),
               onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
@@ -711,7 +711,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
                   }
                 }
               },
-              child: const Text('UPDATE PLAN', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12)),
+              child: const Text('Update Plan', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12)),
             ),
           ],
         ),
@@ -744,7 +744,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: kWhite.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-      child: Text(label.toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+      child: Text(label, style: const TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
     );
   }
 
@@ -761,7 +761,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
               Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.08), shape: BoxShape.circle), child: HeroIcon(icon, color: color, size: 20)),
               const SizedBox(height: 10),
               Text(count, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kBlack87)),
-              Text(label.toUpperCase(), style: const TextStyle(color: kBlack54, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+              Text(label, style: const TextStyle(color: kBlack54, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
             ],
           ),
         );
@@ -776,8 +776,8 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
       child: ListTile(
         dense: true,
         leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)), child: HeroIcon(icon, color: kPrimaryColor, size: 18)),
-        title: Text(label.toUpperCase(), style: const TextStyle(fontSize: 8, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-        subtitle: Text(value ?? 'NOT SET', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
+        title: Text(label, style: const TextStyle(fontSize: 8, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        subtitle: Text(value ?? 'Not Set', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
       ),
     );
   }

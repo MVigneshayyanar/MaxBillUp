@@ -480,7 +480,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
                 children: [
-                  _buildSectionLabel("SUPPLIER DETAILS"),
+                  _buildSectionLabel("Supplier Details"),
                   _buildSupplierAutocomplete(),
                   const SizedBox(height: 16),
                   _buildModernField(_supplierPhoneController, 'Phone Number', HeroIcons.devicePhoneMobile, type: TextInputType.phone),
@@ -488,7 +488,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                   _buildModernField(_supplierGstinController, 'Tax Number', HeroIcons.documentText),
 
                   const SizedBox(height: 24),
-                  _buildSectionLabel("INVOICE DETAILS"),
+                  _buildSectionLabel("Invoice Details"),
                   _buildModernField(_totalAmountController, 'Total Amount *', HeroIcons.banknotes, type: const TextInputType.numberWithOptions(decimal: true), isMandatory: true, onChanged: () => setState(() {})),
                   const SizedBox(height: 16),
                   _buildModernField(_invoiceNumberController, 'Reference Invoice No (Optional)', HeroIcons.documentText),
@@ -497,7 +497,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                   const SizedBox(height: 20),
 
                   // ── Payment Mode chips (same as CreateExpense) ──────────
-                  _buildSectionLabel("PAYMENT MODE"),
+                  _buildSectionLabel("Payment Mode"),
                   Container(
                     decoration: BoxDecoration(
                       color: kWhite,
@@ -516,7 +516,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                   // ── Credit split (shown only when Credit is selected) ───
                   if (_paymentMode == 'Credit') ...[
                     const SizedBox(height: 20),
-                    _buildSectionLabel("PAID AMOUNT"),
+                    _buildSectionLabel("Paid Amount"),
                     _buildModernField(
                       _paidAmountController,
                       'Paid Amount',
@@ -570,7 +570,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
                       tilePadding: EdgeInsets.zero,
-                      title: _buildSectionLabel("ADDITIONAL INFORMATION"),
+                      title: _buildSectionLabel("Additional Information"),
                       children: [
                         _buildModernField(_taxAmountController, 'Tax Component (Amount)', HeroIcons.percentBadge, type: const TextInputType.numberWithOptions(decimal: true)),
                         const SizedBox(height: 16),
@@ -759,7 +759,7 @@ class StockPurchaseDetailsPage extends StatelessWidget {
                       Text(purchaseData['supplierPhone'] ?? '--', style: const TextStyle(color: kBlack54, fontSize: 11)),
                     ]),
                   ),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)), child: Text((purchaseData['paymentMode'] ?? 'Cash').toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor))),
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)), child: Text((purchaseData['paymentMode'] ?? 'Cash'), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor))),
                 ],
               ),
             ),
@@ -772,7 +772,7 @@ class StockPurchaseDetailsPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('LOGISTICS INFORMATION', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                    const Text('Logistics Information', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                     const SizedBox(height: 12),
                     _buildRow(HeroIcons.documentText, 'Ref Invoice', purchaseData['invoiceNumber'] ?? 'N/A'),
                     if (purchaseData['supplierGstin'] != null && purchaseData['supplierGstin'].toString().isNotEmpty)
@@ -782,7 +782,7 @@ class StockPurchaseDetailsPage extends StatelessWidget {
                     const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100)),
 
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      const Text('TOTAL PAYABLE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54)),
+                      const Text('Total Payable', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54)),
                       Text('$currencySymbol${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                     ]),
 

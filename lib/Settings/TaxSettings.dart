@@ -327,8 +327,8 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                   unselectedLabelColor: kBlack54,
                   labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
                   tabs: const [
-                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.percent_rounded, size: 16), SizedBox(width: 8), Text('TAX RATES')])),
-                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.flash_on_rounded, size: 16), SizedBox(width: 8), Text('QUICK BILLING')])),
+                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.percent_rounded, size: 16), SizedBox(width: 8), Text('Tax Rates')])),
+                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.flash_on_rounded, size: 16), SizedBox(width: 8), Text('Quick Billing')])),
                   ],
                 ),
               ),
@@ -412,7 +412,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                 child: ElevatedButton.icon(
                   onPressed: _addNewTax,
                   icon: const Icon(Icons.add_rounded, size: 20, color: kWhite),
-                  label: const Text('ADD TAX CATEGORY', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite, fontSize: 13, letterSpacing: 0.5, fontFamily: 'Lato')),
+                  label: const Text('Add Tax Category', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite, fontSize: 13, letterSpacing: 0.5, fontFamily: 'Lato')),
                   style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 ),
               ),
@@ -512,7 +512,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
         title: const Text('Delete Tax Category?'),
         content: Text('Remove "$name"? This will affect products mapped to this category.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: kErrorColor), onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: kWhite))),
         ],
       ),

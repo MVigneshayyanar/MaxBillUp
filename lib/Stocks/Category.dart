@@ -360,7 +360,7 @@ class _CategoryPageState extends State<CategoryPage> {
                               children: [
                                 const HeroIcon(HeroIcons.plusCircle, size: 16, color: kPrimaryColor),
                                 const SizedBox(width: 8),
-                                Text(context.tr('add_existing').toUpperCase(),
+                                Text(context.tr('add_existing'),
                                     style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800, fontSize: 10, letterSpacing: 0.5)),
                               ],
                             ),
@@ -380,7 +380,7 @@ class _CategoryPageState extends State<CategoryPage> {
                               children: [
                                 const HeroIcon(HeroIcons.plus, size: 16, color: kGoogleGreen),
                                 const SizedBox(width: 8),
-                                Text(context.tr('create_new').toUpperCase(),
+                                Text(context.tr('create_new'),
                                     style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w800, fontSize: 10, letterSpacing: 0.5)),
                               ],
                             ),
@@ -596,7 +596,7 @@ class _CategoryPageState extends State<CategoryPage> {
                 Navigator.pop(c);
               }
             },
-            child: Text(context.tr('save').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
+            child: Text(context.tr('save'), style: const TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
           ),
         ],
       ),
@@ -639,7 +639,7 @@ class _CategoryPageState extends State<CategoryPage> {
               Navigator.pop(c);
               await _deleteCategoryAndUpdateProducts(id, name);
             },
-            child: Text(context.tr('delete').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
+            child: Text(context.tr('delete'), style: const TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
           ),
         ],
       ),
@@ -763,7 +763,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
             elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 20),
-            label: const Text("ADD ITEM", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5)),
+            label: const Text("Add Item", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5)),
           )
               : null,
           body: Column(
@@ -892,7 +892,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
               Navigator.pop(c);
               await FirestoreService().updateDocument('Products', productId, {'category': ''});
             },
-            child: const Text('REMOVE', style: TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
+            child: const Text('Remove', style: TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
           ),
         ],
       ),
@@ -1095,7 +1095,7 @@ class _AddExistingProductDialogState extends State<_AddExistingProductDialog> {
                                   await FirestoreService().updateDocument('Products', products[i].id, {'category': widget.categoryName});
                                   if (context.mounted) Navigator.pop(context);
                                 },
-                                child: const Text('ADD', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kWhite, letterSpacing: 0.5)),
+                                child: const Text('Add', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kWhite, letterSpacing: 0.5)),
                               ),
                             );
                           },

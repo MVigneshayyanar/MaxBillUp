@@ -237,7 +237,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         backgroundColor: kPrimaryColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         icon: const Icon(Icons.person_add_alt_1_rounded, color: kWhite, size: 20),
-        label: const Text("INVITE STAFF", style: TextStyle(fontWeight: FontWeight.w800, color: kWhite, letterSpacing: 0.5)),
+        label: const Text("Invite Staff", style: TextStyle(fontWeight: FontWeight.w800, color: kWhite, letterSpacing: 0.5)),
       ),
       body: Column(
         children: [
@@ -359,7 +359,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                           Text(name, style: const TextStyle(fontSize: 15,fontWeight: FontWeight.bold, color: kBlack87)),
                           const SizedBox(height: 2),
                           Row(children: [
-                            Text(role.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: roleColor, letterSpacing: 0.5)),
+                            Text(role, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: roleColor, letterSpacing: 0.5)),
                             const SizedBox(width: 8),
                             const Text("•", style: TextStyle(color: kGrey400)),
                             const SizedBox(width: 8),
@@ -381,7 +381,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       child: Row(children: [
                         Icon(statusIcon, size: 12, color: statusColor),
                         const SizedBox(width: 6),
-                        Text(statusText.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor, letterSpacing: 0.5)),
+                        Text(statusText, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor, letterSpacing: 0.5)),
                       ]),
                     ),
                     if (!isActive)
@@ -390,7 +390,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                         child: ElevatedButton(
                           onPressed: isEmailVerified ? () => _activateStaff(staffId) : () => _manualCheckVerification(staffId, email, tempPassword),
                           style: ElevatedButton.styleFrom(backgroundColor: isEmailVerified ? kGoogleGreen : kPrimaryColor, elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                          child: Text(isEmailVerified ? "APPROVE" : "CHECK STATUS", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kWhite)),
+                          child: Text(isEmailVerified ? "Approve" : "Check Status", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kWhite)),
                         ),
                       ),
                   ],
@@ -475,14 +475,14 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         backgroundColor: kWhite,
         title: Text(n, style: const TextStyle(fontWeight: FontWeight.w800, color: kBlack87)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _info("Role", r), _info("Email", e), _info("Phone", p), _info("Status", a ? "ACTIVE" : "INACTIVE"),
+          _info("Role", r), _info("Email", e), _info("Phone", p), _info("Status", a ? "Active" : "Inactive"),
         ]),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
             },
-            child: const Text("CLOSE")
+            child: const Text("Close")
           )
         ],
       )
@@ -508,7 +508,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             onPressed: () {
               Navigator.pop(context);
             },
-            child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))
+            child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))
           ),
           ElevatedButton(
             onPressed: () async {
@@ -560,7 +560,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             }
           },
           style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0),
-          child: const Text("DELETE", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+          child: const Text("Delete", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
         ),
       ],
     )).then((_) {
@@ -855,15 +855,15 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _buildPermGroup('MANAGEMENT TOOLS', [
+                _buildPermGroup('Management Tools', [
                   'quotation', 'billHistory', 'creditNotes', 'customerManagement', 'expenses', 'creditDetails', 'staffManagement'
                 ]),
                 const SizedBox(height: 16),
-                _buildPermGroup('ANALYTICS & REPORTS', [
+                _buildPermGroup('Analytics & Reports', [
                   'analytics', 'daybook', 'salesSummary', 'salesReport', 'itemSalesReport', 'topCustomer', 'stockReport', 'lowStockProduct', 'topProducts', 'topCategory', 'expensesReport', 'taxReport', 'staffSalesReport'
                 ]),
                 const SizedBox(height: 16),
-                _buildPermGroup('STOCKS & BILL ACTIONS', [
+                _buildPermGroup('Stocks & Bill Actions', [
                   'addProduct', 'addCategory', 'saleReturn', 'cancelBill', 'editBill'
                 ]),
               ],
@@ -894,35 +894,35 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
   String _permissionDisplayName(String key) {
     const displayNames = {
       // Management tools
-      'quotation': 'ESTIMATION / QUOTATION',
-      'billHistory': 'MANAGE BILLS',
-      'creditNotes': 'RETURN & REFUNDS',
-      'customerManagement': 'CUSTOMERS',
-      'expenses': 'EXPENSES',
-      'creditDetails': 'CREDITS & DUES',
-      'staffManagement': 'STAFF MANAGEMENT',
+      'quotation': 'Estimation / Quotation',
+      'billHistory': 'Manage Bills',
+      'creditNotes': 'Return & Refunds',
+      'customerManagement': 'Customers',
+      'expenses': 'Expenses',
+      'creditDetails': 'Credits & Dues',
+      'staffManagement': 'Staff Management',
       // Reports (matching Reports.dart tile titles)
-      'daybook': 'DAYBOOK TODAY',
-      'analytics': 'BUSINESS SUMMARY',
-      'salesSummary': 'BUSINESS INSIGHTS',
-      'salesReport': 'SALES RECORD',
-      'itemSalesReport': 'ITEM SALES REPORT',
-      'topCustomer': 'TOP CUSTOMERS',
-      'stockReport': 'STOCK REPORT',
-      'lowStockProduct': 'LOW STOCK PRODUCTS',
-      'topProducts': 'PRODUCT SUMMARY',
-      'topCategory': 'TOP CATEGORIES',
-      'taxReport': 'TAX REPORT',
-      'staffSalesReport': 'STAFF SALE REPORT',
+      'daybook': 'Daybook Today',
+      'analytics': 'Business Summary',
+      'salesSummary': 'Business Insights',
+      'salesReport': 'Sales Record',
+      'itemSalesReport': 'Item Sales Report',
+      'topCustomer': 'TOP Customers',
+      'stockReport': 'Stock Report',
+      'lowStockProduct': 'Low Stock Products',
+      'topProducts': 'Product Summary',
+      'topCategory': 'TOP Categories',
+      'taxReport': 'Tax Report',
+      'staffSalesReport': 'Staff Sale Report',
       // Stock & bill actions
-      'addProduct': 'ADD PRODUCT',
-      'addCategory': 'ADD CATEGORY',
-      'saleReturn': 'SALE RETURN',
-      'cancelBill': 'CANCEL BILL',
-      'editBill': 'EDIT BILL',
+      'addProduct': 'Add Product',
+      'addCategory': 'Add Category',
+      'saleReturn': 'Sale Return',
+      'cancelBill': 'Cancel Bill',
+      'editBill': 'Edit Bill',
     };
     return displayNames[key] ??
-        key.replaceAllMapped(RegExp(r'([A-Z])'), (m) => ' ${m.group(0)}').toUpperCase();
+        key.replaceAllMapped(RegExp(r'([A-Z])'), (m) => ' ${m.group(0)}');
   }
 
   Widget _buildPermGroup(String title, List<String> keys) {

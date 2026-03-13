@@ -42,7 +42,7 @@ class PlanComparisonPage extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'PLAN COMPARISON',
+          'Plan Comparison',
           style: TextStyle(
             color: kWhite,
             fontWeight: FontWeight.w900,

@@ -208,7 +208,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        category.toUpperCase(),
+                        category,
                         style: TextStyle(color: categoryColor, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                       ),
                     ),
@@ -240,7 +240,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     const Text(
-                      'READ ARTICLE',
+                      'Read Article',
                       style: TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                     ),
                     const SizedBox(width: 4),
@@ -301,7 +301,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
                         children: [
                           HeroIcon(_getCategoryIcon(category), size: 12, color: categoryColor),
                           const SizedBox(width: 6),
-                          Text(category.toUpperCase(), style: TextStyle(color: categoryColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                          Text(category, style: TextStyle(color: categoryColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                         ],
                       ),
                     ),
@@ -332,7 +332,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
-                      child: const Text('FINISHED READING', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                      child: const Text('Finished Reading', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                     ),
                   ),
                 ],

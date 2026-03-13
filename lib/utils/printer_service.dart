@@ -116,7 +116,7 @@ class PrinterService {
                 child: pw.Column(
                   children: [
                     pw.Text(
-                      businessName ?? 'BUSINESS NAME',
+                      businessName ?? 'Business Name',
                       style: pw.TextStyle(
                         fontSize: 16,
                         fontWeight: pw.FontWeight.bold,
@@ -341,7 +341,7 @@ class PrinterService {
                 children: [
                   pw.Text('Payment', style: const pw.TextStyle(fontSize: 9)),
                   pw.Text(
-                    paymentMode.toUpperCase(),
+                    paymentMode,
                     style: pw.TextStyle(
                       fontSize: 9,
                       fontWeight: pw.FontWeight.bold,

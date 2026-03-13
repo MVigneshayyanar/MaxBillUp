@@ -56,7 +56,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '490905109908',
     projectId: 'maxbillup',
     storageBucket: 'maxbillup.firebasestorage.app',
-    iosBundleId: 'com.example.maxbillup',
+    iosBundleId: 'com.example.maxmybill',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -65,7 +65,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '490905109908',
     projectId: 'maxbillup',
     storageBucket: 'maxbillup.firebasestorage.app',
-    iosBundleId: 'com.example.maxbillup',
+    iosBundleId: 'com.example.maxmybill',
   );
 }
-

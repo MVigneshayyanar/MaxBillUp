@@ -834,7 +834,7 @@ class LanguageProvider extends ChangeNotifier {
       'product_code': 'Product Code',
       'generate': 'Generate',
       'find': 'Find',
-      'hsn_scn': 'HSN/SCN',
+      'hsn_scn': 'Hsn/scn',
       'barcode_info': 'To add barcode from external barcode reader, tap on barcode field and scan barcode',
       'stock_unit': 'Stock Unit',
       'this_field_is_required': 'This field is required',

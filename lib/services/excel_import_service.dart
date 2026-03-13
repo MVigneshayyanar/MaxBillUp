@@ -38,8 +38,8 @@ class ExcelImportService {
       } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         // For desktop platforms, use downloads folder
         final downloadsPath = Platform.isWindows
-            ? '${Platform.environment['USERPROFILE']}\\Downloads\\MAXmybill'
-            : '${Platform.environment['HOME']}/Downloads/MAXmybill';
+            ? '${Platform.environment['Userprofile']}\\Downloads\\MAXmybill'
+            : '${Platform.environment['Home']}/Downloads/MAXmybill';
         directory = Directory(downloadsPath);
         if (!await directory.exists()) {
           await directory.create(recursive: true);
@@ -92,8 +92,8 @@ class ExcelImportService {
       } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         // For desktop platforms, use downloads folder
         final downloadsPath = Platform.isWindows
-            ? '${Platform.environment['USERPROFILE']}\\Downloads\\MAXmybill'
-            : '${Platform.environment['HOME']}/Downloads/MAXmybill';
+            ? '${Platform.environment['Userprofile']}\\Downloads\\MAXmybill'
+            : '${Platform.environment['Home']}/Downloads/MAXmybill';
         directory = Directory(downloadsPath);
         if (!await directory.exists()) {
           await directory.create(recursive: true);
@@ -486,8 +486,8 @@ class ExcelImportService {
             // Use the tax name from Excel (VAT, GST, etc.)
             taxName = taxNameFromExcel.toUpperCase();
             // Normalize common variations
-            if (taxName == 'VALUE ADDED TAX') taxName = 'VAT';
-            if (taxName == 'GOODS AND SERVICES TAX') taxName = 'GST';
+            if (taxName == 'Value Added Tax') taxName = 'VAT';
+            if (taxName == 'Goods And Services Tax') taxName = 'GST';
           } else if (gst > 0) {
             // Default to GST if tax percentage is provided but no name
             taxName = 'GST';
@@ -497,7 +497,7 @@ class ExcelImportService {
           String? taxType;
           if (gst > 0) {
             taxType = 'Add Tax at Billing'; // Default for products with tax
-          } else if (taxName != null && (taxName.contains('EXEMPT') || taxName.contains('ZERO'))) {
+          } else if (taxName != null && (taxName.contains('Exempt') || taxName.contains('Zero'))) {
             taxType = 'Exempt from Tax';
           }
 

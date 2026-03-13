@@ -200,7 +200,7 @@ class _BillPageState extends State<BillPage> {
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           action: SnackBarAction(
-            label: 'SELECT',
+            label: 'Select',
             textColor: kWhite,
             onPressed: _showCustomerDialog,
           ),
@@ -315,7 +315,7 @@ class _BillPageState extends State<BillPage> {
             SizedBox(height: R.sp(context, 24)),
             Row(
               children: [
-                Expanded(child: TextButton(onPressed: () => Navigator.pop(context), child: Text('CANCEL', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54, fontSize: R.sp(context, 12))))),
+                Expanded(child: TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54, fontSize: R.sp(context, 12))))),
                 SizedBox(width: R.sp(context, 12)),
                 Expanded(
                   child: ElevatedButton(
@@ -328,7 +328,7 @@ class _BillPageState extends State<BillPage> {
                       Navigator.pop(context); // Close dialog
                       Navigator.pop(context); // Go back to previous screen
                     },
-                    child: Text('DISCARD', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: R.sp(context, 12))),
+                    child: Text('Discard', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: R.sp(context, 12))),
                   ),
                 ),
               ],
@@ -889,7 +889,7 @@ class _BillPageState extends State<BillPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  const Text('APPLY DISCOUNT', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
+                  const Text('Apply Discount', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
                   GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark, size: 24, color: kBlack54)),
                 ]),
                 const SizedBox(height: 16),
@@ -916,7 +916,7 @@ class _BillPageState extends State<BillPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text('ADDITIONAL DISCOUNT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
+                  const Text('Additional Discount', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
                   const SizedBox(height: 12),
                 ],
                 _buildPopupTextField(
@@ -956,7 +956,7 @@ class _BillPageState extends State<BillPage> {
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0),
-                    child: const Text('APPLY', style: TextStyle(color: kWhite, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                    child: const Text('Apply', style: TextStyle(color: kWhite, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                   ),
                 ),
               ],
@@ -983,7 +983,7 @@ class _BillPageState extends State<BillPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  const Text('CREDIT NOTES', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                  const Text('Credit Notes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                   GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark)),
                 ]),
                 const SizedBox(height: 16),
@@ -1039,7 +1039,7 @@ class _BillPageState extends State<BillPage> {
                   child: ElevatedButton(
                     onPressed: () { setState(() {}); Navigator.pop(context); },
                     style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    child: const Text('APPLY SELECTED', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+                    child: const Text('Apply Selected', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
                   ),
                 ),
               ],
@@ -1107,7 +1107,7 @@ class _BillPageState extends State<BillPage> {
           backgroundColor: kPrimaryColor,
           elevation: 0,
           centerTitle: true,
-          title: Text(context.tr('Bill Summary').toUpperCase(), style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: R.sp(context, 15), letterSpacing: 1.0)),
+          title: Text(context.tr('Bill Summary'), style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: R.sp(context, 15), letterSpacing: 1.0)),
           leading: IconButton(icon: HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: R.sp(context, 18)), onPressed: () {
             // Clear cart when going back from quotation to prevent items persisting
             if (_isFromQuotation) {
@@ -1313,7 +1313,7 @@ class _BillPageState extends State<BillPage> {
                   child: ElevatedButton(
                     onPressed: () { Navigator.pop(ctx); setState(() {}); },
                     style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                    child: const Text('SAVE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                    child: const Text('Save', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                   ),
                 ),
               ],
@@ -1391,7 +1391,7 @@ class _BillPageState extends State<BillPage> {
                           child: OutlinedButton(
                             onPressed: () { Navigator.pop(ctx); setState(() => _deliveryCharge = 0.0); },
                             style: OutlinedButton.styleFrom(side: const BorderSide(color: kErrorColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                            child: const Text('REMOVE', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w700)),
+                            child: const Text('Remove', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w700)),
                           ),
                         ),
                       ),
@@ -1406,7 +1406,7 @@ class _BillPageState extends State<BillPage> {
                             setState(() => _deliveryCharge = val);
                           },
                           style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                          child: const Text('SAVE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                          child: const Text('Save', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                         ),
                       ),
                     ),
@@ -2038,7 +2038,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                     });
                     if (mounted) { Navigator.pop(context); widget.onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim()); }
                   },
-                  child: const Text('ADD CUSTOMER', style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
+                  child: const Text('Add Customer', style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -2059,7 +2059,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
         child: Column(
           children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('SELECT CUSTOMER', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
+              const Text('Select Customer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
               IconButton(onPressed: () => Navigator.pop(context), icon: const HeroIcon(HeroIcons.xMark, color: kBlack54)),
             ]),
             const SizedBox(height: 12),
@@ -2500,7 +2500,7 @@ class _PaymentPageState extends State<PaymentPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                          child: const Text('TOTAL DUE', style: TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                          child: const Text('Total Due', style: TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                         ),
                       ],
                     ),
@@ -2542,7 +2542,7 @@ class _PaymentPageState extends State<PaymentPage> {
                         ),
                         child: Column(
                           children: [
-                            const Text('AMOUNT RECEIVED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 1.0)),
+                            const Text('Amount Received', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 1.0)),
                             const SizedBox(height: 8),
                             Text(
                               _displayController.text, 
@@ -2622,7 +2622,7 @@ class _PaymentPageState extends State<PaymentPage> {
                                 key: const ValueKey('content'),
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(canPay ? (widget.unsettledSaleId != null ? 'UPDATE' : 'CONFIRM PAYMENT') : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
+                            Text(canPay ? (widget.unsettledSaleId != null ? 'Update' : 'Confirm Payment') : 'Incomplete Payment', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
                             if (canPay) ...[
                               const SizedBox(width: 12),
                               Container(
@@ -3261,7 +3261,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildSummaryItem('PAID', _totalPaid, Colors.white),
+                            _buildSummaryItem('Paid', _totalPaid, Colors.white),
                           ],
                         ),
                       )
@@ -3297,7 +3297,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('CASH TO RETURN', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF34A853), letterSpacing: 1.0)),
+                          const Text('Cash To Return', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF34A853), letterSpacing: 1.0)),
                           const SizedBox(height: 2),
                           Text('$_currencySymbol${changeAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF34A853))),
                         ],
@@ -3334,7 +3334,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('CREDIT DUE DATE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kOrange, letterSpacing: 0.5)),
+                            const Text('Credit Due Date', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kOrange, letterSpacing: 0.5)),
                             const SizedBox(height: 2),
                             Text(
                               _creditDueDate != null
@@ -3389,7 +3389,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                       key: const ValueKey('content'),
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(canPay ? (isEditMode ? 'UPDATE' : 'CONFIRM PAYMENT') : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
+                  Text(canPay ? (isEditMode ? 'Update' : 'Confirm Payment') : 'Incomplete Payment', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
                   if (canPay) ...[
                     const SizedBox(width: 12),
                     Container(

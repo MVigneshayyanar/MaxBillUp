@@ -379,7 +379,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          context.tr('Subscription Plans').toUpperCase(),
+          context.tr('Subscription Plans'),
           style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5),
         ),
         centerTitle: true,
@@ -434,7 +434,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
 
   Widget _buildSectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(left: 4),
-    child: Text(text.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
+    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
   );
 
   Widget _buildHorizontalPlanSelector() {
@@ -641,7 +641,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
               HeroIcon(icon, color: color, size: 18),
               const SizedBox(width: 10),
               Text(
-                title.toUpperCase(),
+                title,
                 style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
               ),
             ],
@@ -707,7 +707,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
             const HeroIcon(HeroIcons.arrowsRightLeft, color: kPrimaryColor, size: 22),
             const SizedBox(width: 12),
             const Text(
-              'COMPARE ALL PLANS',
+              'Compare ALL Plans',
               style: TextStyle(
                 color: kPrimaryColor,
                 fontWeight: FontWeight.w900,
@@ -739,13 +739,13 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     bool isEnabled;
 
     if (isCurrent) {
-      buttonText = "ACTIVE PLAN";
+      buttonText = "Active Plan";
       isEnabled = false;
     } else if (isUpgrade) {
-      buttonText = _isPaymentInProgress ? "PROCESSING..." : "UPGRADE NOW";
+      buttonText = _isPaymentInProgress ? "PROCESSING..." : "Upgrade Now";
       isEnabled = !_isPaymentInProgress;
     } else {
-      buttonText = "LOCKED";
+      buttonText = "Locked";
       isEnabled = false;
     }
 

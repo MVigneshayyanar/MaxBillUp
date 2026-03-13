@@ -336,7 +336,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
             color: statusColor.withOpacity(0.1),
             borderRadius: R.radius(context, 12),
             border: Border.all(color: statusColor.withOpacity(0.2))),
-        child: Text(billed ? "BILLED" : "OPEN",
+        child: Text(billed ? "Billed" : "Open",
             style: TextStyle(fontSize: R.sp(context, 9), fontWeight: FontWeight.w900, color: statusColor)));
   }
 

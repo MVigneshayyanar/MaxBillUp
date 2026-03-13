@@ -43,8 +43,8 @@ class CurrencyService {
     // Africa
     'DZD': 'د.ج', 'EGP': 'E£', 'ETB': 'Br', 'GHS': 'GH₵', 'KES': 'KSh',
     'MAD': 'د.م.', 'MUR': '₨', 'MWK': 'MK', 'NAD': 'N\$', 'NGN': '₦',
-    'RWF': 'FRw', 'TND': 'د.ت', 'TZS': 'TSh', 'UGX': 'USh', 'XAF': 'FCFA',
-    'XOF': 'CFA', 'ZAR': 'R', 'ZMW': 'ZK',
+    'RWF': 'FRw', 'TND': 'د.ت', 'TZS': 'TSh', 'UGX': 'USh', 'XAF': 'Fcfa',
+    'XOF': 'Cfa', 'ZAR': 'R', 'ZMW': 'ZK',
   };
 
   /// Get currency symbol for a given code

@@ -111,7 +111,7 @@ class _LoginPageState extends State<LoginPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(context.tr('close').toUpperCase(), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w800, fontSize: 12)),
+            child: Text(context.tr('close'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w800, fontSize: 12)),
           ),
           if (onAction != null)
             ElevatedButton(
@@ -120,7 +120,7 @@ class _LoginPageState extends State<LoginPage> {
                 onAction();
               },
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: Text(actionText.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+              child: Text(actionText, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
             ),
         ],
       ),
@@ -190,7 +190,7 @@ class _LoginPageState extends State<LoginPage> {
         await _auth.signOut();
         setState(() => _loading = false);
         _showDialog(
-            title: '📧 VERIFY EMAIL',
+            title: '📧 Verify Email',
             message: 'Please check your inbox and verify your email address to continue.',
             actionText: 'Resend Email',
             onAction: () async {
@@ -393,7 +393,7 @@ class _LoginPageState extends State<LoginPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(context.tr('welcome_to').toUpperCase(),
+        Text(context.tr('welcome_to'),
             style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
         const SizedBox(height: 12),
         Image.asset(
@@ -415,8 +415,8 @@ class _LoginPageState extends State<LoginPage> {
     ),
     child: Row(
       children: [
-        _tabItem(context.tr('Sign In / Sign up').toUpperCase(), !_isStaff, true),
-        _tabItem('${context.tr('staff')} ${context.tr('login')}'.toUpperCase(), _isStaff, false),
+        _tabItem(context.tr('Sign In / Sign up'), !_isStaff, true),
+        _tabItem('${context.tr('staff')} ${context.tr('login')}', _isStaff, false),
       ],
     ),
   );
@@ -470,14 +470,14 @@ class _LoginPageState extends State<LoginPage> {
     children: [
       _buildTextField(
         _emailCtrl,
-        context.tr('email').toUpperCase(),
+        context.tr('email'),
         HeroIcons.envelope,
         keyboardType: TextInputType.emailAddress,
       ),
       const SizedBox(height: 16),
       _buildTextField(
         _passCtrl,
-        context.tr('password').toUpperCase(),
+        context.tr('password'),
         HeroIcons.lockClosed,
         obscure: _hidePass,
         suffix: IconButton(
@@ -494,7 +494,7 @@ class _LoginPageState extends State<LoginPage> {
         child: TextButton(
           onPressed: _loading ? null : _resetPass,
           child: Text(
-            context.tr('forgot_password').toUpperCase(),
+            context.tr('forgot_password'),
             style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5),
           ),
         ),
@@ -506,7 +506,7 @@ class _LoginPageState extends State<LoginPage> {
     key: const ValueKey('google_form'),
     children: [
       const SizedBox(height: 8),
-      Text(context.tr('SIGN IN WITH GOOGLE').toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w800, letterSpacing: 1.0)),
+      Text(context.tr('Sign In With Google'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w800, letterSpacing: 1.0)),
       const SizedBox(height: 32),
       SizedBox(
         width: double.infinity,
@@ -526,7 +526,7 @@ class _LoginPageState extends State<LoginPage> {
                 child: Image.asset('assets/google.png', errorBuilder: (ctx, err, stack) => CustomPaint(size: const Size(22, 22), painter: GoogleGPainter())),
               ),
               const SizedBox(width: 14),
-              const Text('GOOGLE ACCOUNT', style: TextStyle(fontSize: 14, color: kBlack87, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+              const Text('Google Account', style: TextStyle(fontSize: 14, color: kBlack87, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
             ],
           ),
         ),
@@ -586,7 +586,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildPrimaryActionBtn(BuildContext context) {
-    String txt = _isStaff ? context.tr('login_staff').toUpperCase() : "CONTINUE WITH GOOGLE";
+    String txt = _isStaff ? context.tr('login_staff') : "Continue With Google";
     return SizedBox(
       width: double.infinity,
       height: 56,
@@ -612,11 +612,11 @@ class _LoginPageState extends State<LoginPage> {
         style: const TextStyle(fontSize: 11, color: kBlack54, height: 1.6, fontWeight: FontWeight.w500),
         children: [
           TextSpan(text: "${context.tr('by_proceeding_agree')} "),
-          const TextSpan(text: 'TERMS & CONDITIONS', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900)),
+          const TextSpan(text: 'Terms & Conditions', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900)),
           const TextSpan(text: ', '),
-          const TextSpan(text: 'PRIVACY POLICY', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900)),
+          const TextSpan(text: 'Privacy Policy', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900)),
           const TextSpan(text: ' & '),
-          const TextSpan(text: 'REFUND POLICY', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900)),
+          const TextSpan(text: 'Refund Policy', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900)),
         ],
       ),
     ),

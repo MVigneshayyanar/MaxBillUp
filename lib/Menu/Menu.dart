@@ -288,7 +288,7 @@ class _MenuPageState extends State<MenuPage> {
                   children: [
                     // Compute section visibility
                     if (isFeatureAvailable('billHistory') || isFeatureAvailable('customerManagement', requiredRank: 1) || isFeatureAvailable('expenses', requiredRank: 1))
-                    _buildSectionLabel("CORE OPERATIONS"),
+                    _buildSectionLabel("Core Operations"),
                     if (isFeatureAvailable('billHistory') || isFeatureAvailable('customerManagement', requiredRank: 1))
                     Row(
                       children: [
@@ -324,7 +324,7 @@ class _MenuPageState extends State<MenuPage> {
                     if (isFeatureAvailable('creditDetails', requiredRank: 2) || (isAdmin || _hasPermission('creditNotes')) || isFeatureAvailable('quotation', requiredRank: 1))
                     const SizedBox(height: 12),
                     if (isFeatureAvailable('creditDetails', requiredRank: 2) || (isAdmin || _hasPermission('creditNotes')) || isFeatureAvailable('quotation', requiredRank: 1))
-                    _buildSectionLabel("SALES OPERATIONS"),
+                    _buildSectionLabel("Sales Operations"),
 
                     if (isFeatureAvailable('creditDetails', requiredRank: 2))
                       StreamBuilder<int>(
@@ -348,7 +348,7 @@ class _MenuPageState extends State<MenuPage> {
                       _buildMenuTile('Estimation / Quotation', HeroIcons.document, kPrimaryColor, 'Quotation', requiredRank: 1),
 
                     const SizedBox(height: 12),
-                    _buildSectionLabel("HELP & SUPPORT"),
+                    _buildSectionLabel("Help & Support"),
                     _buildMenuTile('How to - Videos', HeroIcons.playCircle, const Color(0xFF2F7CF6), 'VideoTutorial'),
                     _buildMenuTile('Knowledge Base', HeroIcons.academicCap, const Color(0xFFE6AE00), 'Knowledge'),
                     _buildMenuTile('Help & Support', HeroIcons.chatBubbleLeftRight, kPrimaryColor, 'Support', requiredRank: 1),
@@ -3447,18 +3447,18 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final isCancelled = d['status'] == 'cancelled';
 
       if (isCancelled) {
-        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (CANCELLED)", debit: 0, credit: 0, balanceImpact: 0));
+        entries.add(LedgerEntry(date: date, type: 'Inv', desc: "Invoice #${d['invoiceNumber']} (CANCELLED)", debit: 0, credit: 0, balanceImpact: 0));
       } else if (mode == 'Cash' || mode == 'Online') {
-        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} ($mode)", debit: total, credit: 0, balanceImpact: 0));
+        entries.add(LedgerEntry(date: date, type: 'Inv', desc: "Invoice #${d['invoiceNumber']} ($mode)", debit: total, credit: 0, balanceImpact: 0));
       } else if (mode == 'Credit') {
-        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (Credit)", debit: total, credit: total, balanceImpact: total));
+        entries.add(LedgerEntry(date: date, type: 'Inv', desc: "Invoice #${d['invoiceNumber']} (Credit)", debit: total, credit: total, balanceImpact: total));
       } else if (mode == 'Split') {
         final cashPaid = (d['cashReceived'] ?? 0.0).toDouble();
         final onlinePaid = (d['onlineReceived'] ?? 0.0).toDouble();
         final creditAmt = total - cashPaid - onlinePaid;
-        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (Split)", debit: total, credit: creditAmt > 0 ? creditAmt : 0, balanceImpact: creditAmt > 0 ? creditAmt : 0));
+        entries.add(LedgerEntry(date: date, type: 'Inv', desc: "Invoice #${d['invoiceNumber']} (Split)", debit: total, credit: creditAmt > 0 ? creditAmt : 0, balanceImpact: creditAmt > 0 ? creditAmt : 0));
       } else {
-        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']}", debit: total, credit: 0, balanceImpact: 0));
+        entries.add(LedgerEntry(date: date, type: 'Inv', desc: "Invoice #${d['invoiceNumber']}", debit: total, credit: 0, balanceImpact: 0));
       }
     }
     for (var doc in credits.docs) {
@@ -3470,11 +3470,11 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final isCancelled = d['status'] == 'cancelled';
 
       if (isCancelled) {
-        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Cancelled Payment (${method.isNotEmpty ? method : 'Cash'})", debit: 0, credit: 0, balanceImpact: 0));
+        entries.add(LedgerEntry(date: date, type: 'Pay', desc: "Cancelled Payment (${method.isNotEmpty ? method : 'Cash'})", debit: 0, credit: 0, balanceImpact: 0));
       } else if (type == 'payment_received') {
-        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Payment Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
+        entries.add(LedgerEntry(date: date, type: 'Pay', desc: "Payment Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
       } else if (type == 'settlement') {
-        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Credit Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
+        entries.add(LedgerEntry(date: date, type: 'Pay', desc: "Credit Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
       } else if (type == 'add_credit') {
         entries.add(LedgerEntry(date: date, type: 'CR', desc: "Manual Credit Added", debit: 0, credit: amt, balanceImpact: amt));
       }
@@ -3501,11 +3501,11 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           color: kPrimaryColor.withOpacity(0.05),
           child: const Row(children: [
-            Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-            Expanded(flex: 3, child: Text("PARTICULARS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-            Expanded(flex: 2, child: Text("DEBIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
-            Expanded(flex: 2, child: Text("CREDIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
-            Expanded(flex: 2, child: Text("BALANCE", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54))),
+            Expanded(flex: 2, child: Text("Date", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+            Expanded(flex: 3, child: Text("Particulars", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+            Expanded(flex: 2, child: Text("Debit", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
+            Expanded(flex: 2, child: Text("Credit", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
+            Expanded(flex: 2, child: Text("Balance", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54))),
           ]),
         ),
         Expanded(child: ListView.separated(
@@ -3926,7 +3926,7 @@ class CreditNoteDetailPage extends StatelessWidget {
             _buildHeroCard(creditNoteData['creditNoteNumber'] ?? 'N/A', amount, status),
 
             const SizedBox(height: 24),
-            _buildSectionTitle("INFORMATION"),
+            _buildSectionTitle("Information"),
             _buildSectionCard(
               child: Column(
                 children: [
@@ -3940,7 +3940,7 @@ class CreditNoteDetailPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 24),
-            _buildSectionTitle("ITEMS LIST"),
+            _buildSectionTitle("Items List"),
             _buildSectionCard(
               padding: EdgeInsets.zero,
               child: Column(
@@ -3957,7 +3957,7 @@ class CreditNoteDetailPage extends StatelessWidget {
             if (status == 'Available')
               _buildLargeButton(
                 context,
-                label: "PROCESS REFUND",
+                label: "Process Refund",
                 icon: HeroIcons.checkCircle,
                 color: kSuccessGreen,
                 onPressed: () => _showRefundDialog(context),
@@ -4884,7 +4884,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 _performAsyncAction(() => _settlePurchaseCredit(docId, data, amount, paymentMode), "Purchase settled successfully");
               },
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: const Text('CONFIRM', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
+              child: const Text('Confirm', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -5577,7 +5577,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
         ),
         child: Column(
           children: [
-            Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+            Text(label, style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
             const SizedBox(height: 6),
             Text('$_currencySymbol${amount.toStringAsFixed(0)}', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w900)),
           ],
@@ -5609,8 +5609,8 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
 
     Color dueDateColor = kBlack54;
     String dueDateLabel = '';
-    if (isOverdue) { dueDateColor = kErrorColor; dueDateLabel = 'OVERDUE'; }
-    else if (isNearDue) { dueDateColor = kOrange; dueDateLabel = daysRemaining == 0 ? 'DUE TODAY' : 'DUE IN $daysRemaining DAYS'; }
+    if (isOverdue) { dueDateColor = kErrorColor; dueDateLabel = 'Overdue'; }
+    else if (isNearDue) { dueDateColor = kOrange; dueDateLabel = daysRemaining == 0 ? 'Due Today' : 'DUE IN $daysRemaining DAYS'; }
 
     return Container(
       decoration: BoxDecoration(
@@ -5686,7 +5686,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(color: kGoogleGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: kGoogleGreen.withValues(alpha: 0.2))),
-                        child: const Text('SETTLE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                        child: const Text('Settle', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen)),
                       ),
                       const SizedBox(width: 8),
                       const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
@@ -5784,7 +5784,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(color: kGoogleGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: kGoogleGreen.withValues(alpha: 0.2))),
-                        child: const Text('SETTLE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                        child: const Text('Settle', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen)),
                       ),
                       const SizedBox(width: 8),
                       const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
@@ -5860,7 +5860,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
             ),
 
             const SizedBox(height: 24),
-            _buildSectionTitle("FINANCIAL SUMMARY"),
+            _buildSectionTitle("Financial Summary"),
             _buildSectionCard(
               child: Column(
                 children: [
@@ -5870,7 +5870,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("UNPAID DUE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: kMediumBlue)),
+                      const Text("Unpaid Due", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: kMediumBlue)),
                       Text("${remaining.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: kErrorRed)),
                     ],
                   ),
@@ -6558,7 +6558,7 @@ class StaffManagementList extends StatelessWidget {
                 TextButton.icon(
                   onPressed: onAddStaff,
                   icon: const HeroIcon(HeroIcons.plusCircle, size: 20, color: kWhite),
-                  label: const Text("ADD NEW", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kWhite)),
+                  label: const Text("Add New", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kWhite)),
                   style: TextButton.styleFrom(
                       backgroundColor: kPrimaryColor,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -6605,7 +6605,7 @@ class StaffManagementList extends StatelessWidget {
                                 style: const TextStyle(fontWeight: FontWeight.w900, color: kDeepNavy, fontSize: 15)),
                             subtitle: Text("${data['role'] ?? 'Staff'} • ${data['email'] ?? ''}",
                                 style: const TextStyle(fontSize: 12, color: kMediumBlue, fontWeight: FontWeight.w600)),
-                            trailing: _buildManagerStatusPill(isActive ? "ACTIVE" : "INACTIVE", isActive ? kSuccessGreen : kErrorRed),
+                            trailing: _buildManagerStatusPill(isActive ? "Active" : "Inactive", isActive ? kSuccessGreen : kErrorRed),
                           ),
                         );
                       },
@@ -6663,14 +6663,14 @@ class _AddStaffPageState extends State<AddStaffPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildManagerSectionTitle("LOGIN INFORMATION"),
+              _buildManagerSectionTitle("Login Information"),
               _buildManagerFormTextField(_nameCtrl, "Staff Full Name", HeroIcons.identification),
               const SizedBox(height: 16),
               _buildManagerFormTextField(_emailCtrl, "Email Address / User ID", HeroIcons.atSymbol),
               const SizedBox(height: 16),
               _buildManagerFormTextField(_passCtrl, "Password", HeroIcons.key, isObscure: true),
               const SizedBox(height: 32),
-              _buildManagerSectionTitle("ACCESS PERMISSIONS"),
+              _buildManagerSectionTitle("Access Permissions"),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
@@ -6715,7 +6715,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
-                  child: const Text("CREATE STAFF ACCOUNT",
+                  child: const Text("Create Staff Account",
                       style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.2)),
                 ),
               ),
@@ -7216,7 +7216,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
               children: [
                 Expanded(child: _modeBtn('CreditNote', 'Credit note')),
                 const SizedBox(width: 12),
-                Expanded(child: _modeBtn('Cash', 'CASH REFUND')),
+                Expanded(child: _modeBtn('Cash', 'Cash Refund')),
               ],
             ),
             // Warning if credit note needs customer
@@ -7726,7 +7726,7 @@ class _EditBillPageState extends State<EditBillPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildSectionLabel('BILLING ITEMS'),
+                      _buildSectionLabel('Billing Items'),
                       GestureDetector(
                         onTap: () async {
                           // Build current cart items to pre-populate nq.dart
@@ -7795,7 +7795,7 @@ class _EditBillPageState extends State<EditBillPage> {
                             children: [
                               HeroIcon(HeroIcons.plusCircle, size: 14, color: kHeaderColor),
                               SizedBox(width: 6),
-                              Text('ADD ITEM', style: TextStyle(color: kHeaderColor, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+                              Text('Add Item', style: TextStyle(color: kHeaderColor, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
                             ],
                           ),
                         ),
@@ -9020,7 +9020,7 @@ class _EditBillPageState extends State<EditBillPage> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(4)),
-                                      child: const Text('EXPIRED', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kWhite)),
+                                      child: const Text('Expired', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kWhite)),
                                     ),
                                   )
                                 else if (isOutOfStock)
@@ -9029,7 +9029,7 @@ class _EditBillPageState extends State<EditBillPage> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(color: kErrorColor, borderRadius: BorderRadius.circular(4)),
-                                      child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kWhite)),
+                                      child: const Text('Out Of Stock', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kWhite)),
                                     ),
                                   )
                                 else if (isLowStock)
@@ -9038,7 +9038,7 @@ class _EditBillPageState extends State<EditBillPage> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(color: kOrange, borderRadius: BorderRadius.circular(4)),
-                                      child: const Text('LOW STOCK', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kWhite)),
+                                      child: const Text('Low Stock', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kWhite)),
                                     ),
                                   ),
                               ],

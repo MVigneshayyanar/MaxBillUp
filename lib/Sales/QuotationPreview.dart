@@ -58,7 +58,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
       final pdf = pw.Document();
       pdf.addPage(pw.Page(pageFormat: PdfPageFormat.a4, build: (pw.Context context) {
         return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-          pw.Text("QUOTATION", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF2F7CF6))),
+          pw.Text("Quotation", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF2F7CF6))),
           pw.SizedBox(height: 10),
           pw.Text("From: $businessName"),
           pw.Text("Client: ${widget.customerName ?? 'Guest'}"),
@@ -102,8 +102,8 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("QUOTATION ID", style: TextStyle(fontSize: 9, color: kBlack54, fontWeight: FontWeight.w700)), Text("${widget.quotationNumber}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 15))]),
-                          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: kGoogleGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(6)), child: const Text("DRAFT", style: TextStyle(color: kGoogleGreen, fontSize: 9, fontWeight: FontWeight.w900))),
+                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Quotation ID", style: TextStyle(fontSize: 9, color: kBlack54, fontWeight: FontWeight.w700)), Text("${widget.quotationNumber}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 15))]),
+                          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: kGoogleGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(6)), child: const Text("Draft", style: TextStyle(color: kGoogleGreen, fontSize: 9, fontWeight: FontWeight.w900))),
                         ],
                       ),
                     ),
@@ -111,9 +111,9 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
                       padding: const EdgeInsets.all(16), // Reduced from 20
                       child: Column(
                         children: [
-                          _buildInfoSection("ISSUED BY", businessName, businessLocation),
+                          _buildInfoSection("Issued By", businessName, businessLocation),
                           const Divider(height: 24, color: kGreyBg), // Reduced from 32
-                          _buildInfoSection("QUOTED TO", widget.customerName ?? "Guest", widget.customerPhone ?? "--"),
+                          _buildInfoSection("Quoted To", widget.customerName ?? "Guest", widget.customerPhone ?? "--"),
                           const SizedBox(height: 16), // Reduced gap
                           Container(
                             decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)),
@@ -132,7 +132,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
                           _summaryLine("Subtotal", widget.subtotal),
                           _summaryLine("Discounts", -widget.discount, color: kErrorColor),
                           const Divider(height: 24, thickness: 1.5, color: kGrey200),
-                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("ESTIMATED TOTAL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)), Text("${widget.currencySymbol}${widget.total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kGoogleGreen))]),
+                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Estimated Total", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)), Text("${widget.currencySymbol}${widget.total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kGoogleGreen))]),
                         ],
                       ),
                     ),
@@ -151,5 +151,5 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
 
   Widget _summaryLine(String l, double v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)), Text("${widget.currencySymbol}${v.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.w700, color: color ?? kBlack87, fontSize: 13))]));
 
-  Widget _buildBottomActions(BuildContext context) => Container(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), decoration: BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))), child: Row(children: [Expanded(child: OutlinedButton.icon(onPressed: () => _handleShare(context), icon: const Icon(Icons.share_rounded, size: 16), label: const Text("SHARE"), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), side: const BorderSide(color: kPrimaryColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))), const SizedBox(width: 10), Expanded(child: ElevatedButton(onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst), style: ElevatedButton.styleFrom(backgroundColor: kGoogleGreen, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text("DONE", style: TextStyle(fontWeight: FontWeight.w700))))]));
+  Widget _buildBottomActions(BuildContext context) => Container(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), decoration: BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))), child: Row(children: [Expanded(child: OutlinedButton.icon(onPressed: () => _handleShare(context), icon: const Icon(Icons.share_rounded, size: 16), label: const Text("Share"), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), side: const BorderSide(color: kPrimaryColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))), const SizedBox(width: 10), Expanded(child: ElevatedButton(onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst), style: ElevatedButton.styleFrom(backgroundColor: kGoogleGreen, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text("Done", style: TextStyle(fontWeight: FontWeight.w700))))]));
 }

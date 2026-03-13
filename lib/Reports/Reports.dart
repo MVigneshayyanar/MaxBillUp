@@ -611,7 +611,7 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
           children: [
             const Padding(
               padding: EdgeInsets.only(left: 8.0, bottom: 12),
-              child: Text("ADVANCED AUDIT TIMEFRAME", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 1.5)),
+              child: Text("Advanced Audit Timeframe", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 1.5)),
             ),
             _buildModalItem(DateFilterOption.last7Days, HeroIcons.calendarDays, () {
               final now = DateTime.now();
@@ -778,7 +778,7 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("ALL", style: TextStyle(color: Colors.black87, fontSize: 10, fontWeight: FontWeight.w900)),
+                        Text("All", style: TextStyle(color: Colors.black87, fontSize: 10, fontWeight: FontWeight.w900)),
                         SizedBox(width: 2),
                         HeroIcon(HeroIcons.adjustmentsHorizontal, size: 12, color: kPrimaryColor),
                       ],
@@ -2902,13 +2902,13 @@ class _DayBookPageState extends State<DayBookPage> {
     else if (mode.contains('credit')) modeColor = kWarningOrange;
 
     Color statusColor = kIncomeGreen;
-    String statusText = 'COMPLETED';
+    String statusText = 'Completed';
     if (isCancelled) {
       statusColor = kExpenseRed;
-      statusText = 'CANCELLED';
+      statusText = 'Cancelled';
     } else if (isReturned) {
       statusColor = kWarningOrange;
-      statusText = 'RETURNED';
+      statusText = 'Returned';
     }
 
     DateTime? dt;
@@ -3128,7 +3128,7 @@ class _DayBookPageState extends State<DayBookPage> {
                             : mode.contains('credit')
                             ? Icons.event_note_rounded
                             : Icons.money_rounded,
-                        label: 'PAYMENT',
+                        label: 'Payment',
                         value: mode,
                         color: modeColor,
                       ),
@@ -3139,7 +3139,7 @@ class _DayBookPageState extends State<DayBookPage> {
                       Expanded(
                         child: _buildDetailTile(
                           icon: Icons.local_offer_rounded,
-                          label: 'DISCOUNT',
+                          label: 'Discount',
                           value: ' ${discount.toStringAsFixed(0)}',
                           color: kWarningOrange,
                         ),
@@ -3150,7 +3150,7 @@ class _DayBookPageState extends State<DayBookPage> {
                       Expanded(
                         child: _buildDetailTile(
                           icon: Icons.receipt_long_rounded,
-                          label: 'TAX',
+                          label: 'Tax',
                           value: ' ${tax.toStringAsFixed(0)}',
                           color: kIncomeGreen,
                         ),
@@ -3178,7 +3178,7 @@ class _DayBookPageState extends State<DayBookPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'TOTAL AMOUNT',
+                  'Total Amount',
                   style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.8),
                 ),
                 Text(
@@ -4076,7 +4076,7 @@ class _DayBookPageState extends State<DayBookPage> {
                         border: Border.all(color: accent.withOpacity(0.2)),
                       ),
                       child: Text(
-                        category.toUpperCase(),
+                        category,
                         style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w900,
@@ -4365,12 +4365,12 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                             _buildSalesBreakdownSection(netSale, grossSale, productCost, discount, saleCount),
 
                             const SizedBox(height: 20),
-                            _buildSectionLabel("REVENUE TIMELINE"),
+                            _buildSectionLabel("Revenue Timeline"),
                             const SizedBox(height: 8),
                             _buildRevenueTimelineCard(hourlyRevenue),
 
                             const SizedBox(height: 20),
-                            _buildSectionLabel("PAYMENT STRUCTURE"),
+                            _buildSectionLabel("Payment Structure"),
                             const SizedBox(height: 8),
                             _buildPaymentStructureCard(netSale, cash, online, creditNote, credit, unsettled),
                             const SizedBox(height: 30),
@@ -4428,7 +4428,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("TOTAL BILLS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+                    const Text("Total Bills", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
                     Text("$count", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kTextPrimary)),
                   ],
                 ),
@@ -4443,7 +4443,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text("AVG BILL VALUE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+                    const Text("Avg Bill Value", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
                     Text(
                       "${CurrencyService().symbol}${avg.toStringAsFixed(0)}",
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kTextPrimary),
@@ -4512,7 +4512,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
             children: [
               Row(
                 children: [
-                  const Text("ESTIMATED PROFIT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
+                  const Text("Estimated Profit", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
                   const SizedBox(width: 6),
                   InkWell(
                     onTap: () {
@@ -4651,7 +4651,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel("SALES BREAKDOWN"),
+        _buildSectionLabel("Sales Breakdown"),
         const SizedBox(height: 8),
         _buildBreakdownRow("Gross Sales", gross, kIncomeGreen, Icons.arrow_upward_rounded, net),
         const SizedBox(height: 6),
@@ -5112,8 +5112,8 @@ class _FullSalesHistoryPageState extends State<FullSalesHistoryPage> {
       return [
         (d['invoiceNumber']?.toString() ?? 'N/A'),
         dateStr,
-        (d['customerName']?.toString() ?? 'GUEST'),
-        (d['paymentMode']?.toString() ?? 'CASH'),
+        (d['customerName']?.toString() ?? 'Guest'),
+        (d['paymentMode']?.toString() ?? 'Cash'),
         total.toStringAsFixed(2),
       ];
     }).toList();
@@ -5278,7 +5278,7 @@ class _FullSalesHistoryPageState extends State<FullSalesHistoryPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("NET SALES VALUE", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+              const Text("Net Sales Value", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
               const SizedBox(height: 2),
               Text("$symbol${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
             ],
@@ -5409,7 +5409,7 @@ class _FullSalesHistoryPageState extends State<FullSalesHistoryPage> {
           children: [
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text("SORT BY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1, color: kTextSecondary)),
+              child: Text("Sort By", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1, color: kTextSecondary)),
             ),
             _sortTile(ctx, Icons.calendar_today_rounded, 'Date', 'date'),
             _sortTile(ctx, Icons.attach_money_rounded, 'Amount', 'amount'),
@@ -5559,12 +5559,12 @@ class _FullSalesHistoryPageState extends State<FullSalesHistoryPage> {
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             child: const Row(
               children: [
-                Expanded(flex: 1, child: Text("INVOICE", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
+                Expanded(flex: 1, child: Text("Invoice", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
                 SizedBox(width: 4),
-                Expanded(flex: 2, child: Text("CUSTOMER", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
-                Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
-                Expanded(flex: 1, child: Text("MODE", textAlign: TextAlign.center, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
-                Expanded(flex: 2, child: Text("AMOUNT", textAlign: TextAlign.right, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
+                Expanded(flex: 2, child: Text("Customer", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
+                Expanded(flex: 2, child: Text("Date", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
+                Expanded(flex: 1, child: Text("Mode", textAlign: TextAlign.center, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
+                Expanded(flex: 2, child: Text("Amount", textAlign: TextAlign.right, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
               ],
             ),
           ),
@@ -5647,7 +5647,7 @@ class _FullSalesHistoryPageState extends State<FullSalesHistoryPage> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      isCancelled ? 'CANCELLED' : 'RETURNED',
+                      isCancelled ? 'Cancelled' : 'Returned',
                       style: TextStyle(
                         fontSize: 7,
                         fontWeight: FontWeight.w900,
@@ -5752,9 +5752,9 @@ class _TopCustomersPageState extends State<TopCustomersPage> {
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
       reportTitle: 'Customer Contribution Audit',
-      headers: ['RANK', 'CUSTOMER NAME', 'NO. BILLS', 'CREDIT DUE', 'TOTAL SALES'],
+      headers: ['Rank', 'Customer Name', 'NO. BILLS', 'Credit Due', 'Total Sales'],
       rows: rows,
-      summaryTitle: 'GRAND TOTAL SALES',
+      summaryTitle: 'Grand Total Sales',
       summaryValue: grandTotal.toStringAsFixed(2),
       additionalSummary: {
         'Customer Base': '${customers.length} Unique Customers',
@@ -5955,7 +5955,7 @@ class _TopCustomersPageState extends State<TopCustomersPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("GRAND TOTAL SALES", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+              const Text("Grand Total Sales", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
               const SizedBox(height: 2),
               Text(grandTotal.toStringAsFixed(2), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
             ],
@@ -5964,7 +5964,7 @@ class _TopCustomersPageState extends State<TopCustomersPage> {
             children: [
               _buildHeaderBadge("$count", "Customers", kPrimaryColor),
               const SizedBox(width: 8),
-              _buildHeaderBadge(totalCredit.toStringAsFixed(0), "CREDIT DUE", kExpenseRed),
+              _buildHeaderBadge(totalCredit.toStringAsFixed(0), "Credit Due", kExpenseRed),
             ],
           ),
         ],
@@ -6041,7 +6041,7 @@ class _TopCustomersPageState extends State<TopCustomersPage> {
           children: [
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text("SORT BY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1, color: kTextSecondary)),
+              child: Text("Sort By", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1, color: kTextSecondary)),
             ),
             _sortTile(ctx, Icons.attach_money_rounded, 'Total Sales', 'totalSales'),
             _sortTile(ctx, Icons.sort_by_alpha_rounded, 'Customer Name', 'name'),
@@ -6189,12 +6189,12 @@ class _TopCustomersPageState extends State<TopCustomersPage> {
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             child: Row(
               children: const [
-                SizedBox(width: 28, child: Text("RANK", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
+                SizedBox(width: 28, child: Text("Rank", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
                 SizedBox(width: 4),
-                Expanded(flex: 3, child: Text("CUSTOMER NAME", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
-                Expanded(flex: 1, child: Text("BILLS", textAlign: TextAlign.center, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
-                Expanded(flex: 2, child: Text("CREDIT DUE", textAlign: TextAlign.right, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
-                Expanded(flex: 2, child: Text("TOTAL SALES", textAlign: TextAlign.right, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
+                Expanded(flex: 3, child: Text("Customer Name", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
+                Expanded(flex: 1, child: Text("Bills", textAlign: TextAlign.center, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
+                Expanded(flex: 2, child: Text("Credit Due", textAlign: TextAlign.right, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
+                Expanded(flex: 2, child: Text("Total Sales", textAlign: TextAlign.right, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.4))),
               ],
             ),
           ),
@@ -6331,9 +6331,9 @@ class _StockReportPageState extends State<StockReportPage> {
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
       reportTitle: 'Executive Stock Valuation Audit',
-      headers: ['SL.', 'PRODUCT CODE', 'ITEM NAME', 'STOCK', 'COST', 'PROFIT', 'RETAIL VAL'],
+      headers: ['SL.', 'Product Code', 'Item Name', 'Stock', 'Cost', 'Profit', 'Retail Val'],
       rows: rows,
-      summaryTitle: 'TOTAL RETAIL VALUE',
+      summaryTitle: 'Total Retail Value',
       summaryValue: '${retailValue.toStringAsFixed(2)}',
       additionalSummary: {
         'Inventory Cost': '${totalInvValue.toStringAsFixed(2)}',
@@ -6498,9 +6498,9 @@ class _StockReportPageState extends State<StockReportPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildRibbonSegment("INV. VALUE (COST)", "${cost.toStringAsFixed(0)}", kTextSecondary),
-          _buildRibbonSegment("RETAIL VALUE", "${retail.toStringAsFixed(0)}", kPrimaryColor),
-          _buildRibbonSegment("POTENTIAL PROFIT", "${profit.toStringAsFixed(0)}", kIncomeGreen),
-          _buildRibbonSegment("TOTAL STOCK", "$count", kPurpleCharts),
+          _buildRibbonSegment("Retail Value", "${retail.toStringAsFixed(0)}", kPrimaryColor),
+          _buildRibbonSegment("Potential Profit", "${profit.toStringAsFixed(0)}", kIncomeGreen),
+          _buildRibbonSegment("Total Stock", "$count", kPurpleCharts),
         ],
       ),
     );
@@ -6574,7 +6574,7 @@ class _StockReportPageState extends State<StockReportPage> {
               children: [
                 const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text("SORT INVENTORY BY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1, color: kTextSecondary)),
+                  child: Text("Sort Inventory By", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1, color: kTextSecondary)),
                 ),
                 _sortTile(ctx, Icons.tag_rounded, 'Product Code', 'productCode'),
                 _sortTile(ctx, Icons.sort_by_alpha_rounded, 'Item Name', 'name'),
@@ -6645,12 +6645,12 @@ class _StockReportPageState extends State<StockReportPage> {
               children: [
                 SizedBox(width: 28, child: Text("SL.", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
                 SizedBox(width: 6),
-                Expanded(flex: 2, child: Text("PRODUCT CODE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 3, child: Text("ITEM NAME", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 1, child: Text("STOCK", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text("COST", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text("PROFIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text("RETAIL VAL", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Product Code", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 3, child: Text("Item Name", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 1, child: Text("Stock", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Cost", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Profit", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Retail Val", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
               ],
             ),
           ),
@@ -6777,9 +6777,9 @@ class ItemSalesPage extends StatelessWidget {
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
       reportTitle: 'Item Sales Report',
-      headers: ['RANK', 'ITEM DESCRIPTION', 'UNITS SOLD'],
+      headers: ['Rank', 'Item Description', 'Units Sold'],
       rows: rows,
-      summaryTitle: 'TOTAL UNIT SETTLEMENT',
+      summaryTitle: 'Total Unit Settlement',
       summaryValue: '$totalQty UNITS',
       additionalSummary: {
         'Inventory Scope': '${sorted.length} Unique SKUs',
@@ -6927,7 +6927,7 @@ class ItemSalesPage extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("TOTAL UNITS SOLD", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+              const Text("Total Units Sold", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
               const SizedBox(height: 2),
               Text("$totalQty", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
             ],
@@ -6942,7 +6942,7 @@ class ItemSalesPage extends StatelessWidget {
             child: Column(
               children: [
                 Text("$uniqueCount", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 16)),
-                const Text("VARIETIES", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
+                const Text("Varieties", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -7055,16 +7055,16 @@ class ItemSalesPage extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 32,
-                  child: Text("RANK", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
+                  child: Text("Rank", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
                 ),
                 SizedBox(width: 6),
                 Expanded(
                   flex: 4,
-                  child: Text("ITEM NAME", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
+                  child: Text("Item Name", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
                 ),
                 Expanded(
                   flex: 2,
-                  child: Text("UNITS SOLD", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
+                  child: Text("Units Sold", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
                 ),
                 Expanded(
                   flex: 2,
@@ -7200,7 +7200,7 @@ class _LowStockPageState extends State<LowStockPage> {
         e['category'].toString(),
         (e['minStock'] is num ? (e['minStock'] as num).toDouble() : 0.0).toStringAsFixed(0),
         (e['currentStock'] is num ? (e['currentStock'] as num).toDouble() : 0.0).toStringAsFixed(0),
-        'LOW STOCK',
+        'Low Stock',
       ]),
       ...out.map((e) => [
         '${sl++}',
@@ -7209,16 +7209,16 @@ class _LowStockPageState extends State<LowStockPage> {
         e['category'].toString(),
         (e['minStock'] is num ? (e['minStock'] as num).toDouble() : 0.0).toStringAsFixed(0),
         (e['currentStock'] is num ? (e['currentStock'] as num).toDouble() : 0.0).toStringAsFixed(0),
-        'OUT OF STOCK',
+        'Out Of Stock',
       ]),
     ];
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
       reportTitle: 'Stock Replenishment Audit',
-      headers: ['SL.', 'PRODUCT CODE', 'ITEM NAME', 'CATEGORY', 'MIN REQ.', 'ON HAND', 'STATUS'],
+      headers: ['SL.', 'Product Code', 'Item Name', 'Category', 'MIN REQ.', 'On Hand', 'Status'],
       rows: rows,
-      summaryTitle: 'TOTAL ALERTS',
+      summaryTitle: 'Total Alerts',
       summaryValue: '${low.length + out.length} ITEMS',
       additionalSummary: {
         'Critical (Out)': '${out.length}',
@@ -7403,7 +7403,7 @@ class _LowStockPageState extends State<LowStockPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("ITEMS REQUIRING ATTENTION", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+              const Text("Items Requiring Attention", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
               const SizedBox(height: 2),
               Text("${low + out}", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
             ],
@@ -7418,7 +7418,7 @@ class _LowStockPageState extends State<LowStockPage> {
             child: Column(
               children: [
                 Text("$out", style: const TextStyle(color: kExpenseRed, fontWeight: FontWeight.w900, fontSize: 16)),
-                const Text("CRITICAL", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
+                const Text("Critical", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -7506,7 +7506,7 @@ class _LowStockPageState extends State<LowStockPage> {
             children: [
               const Padding(
                 padding: EdgeInsets.all(16),
-                child: Text("SORT BY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1, color: kTextSecondary)),
+                child: Text("Sort By", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1, color: kTextSecondary)),
               ),
               _sortTile(ctx, Icons.tag_rounded, 'Product Code', 'productCode'),
               _sortTile(ctx, Icons.sort_by_alpha_rounded, 'Item Name', 'name'),
@@ -7574,11 +7574,11 @@ class _LowStockPageState extends State<LowStockPage> {
               children: const [
                 SizedBox(width: 28, child: Text("SL.", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
                 SizedBox(width: 6),
-                Expanded(flex: 2, child: Text("PRODUCT CODE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 3, child: Text("ITEM NAME", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text("CATEGORY", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 1, child: Text("MIN", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 1, child: Text("STOCK", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Product Code", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 3, child: Text("Item Name", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Category", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 1, child: Text("Min", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 1, child: Text("Stock", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
               ],
             ),
           ),
@@ -7716,9 +7716,9 @@ class _TopProductsPageState extends State<TopProductsPage> {
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
       reportTitle: 'Product Performance Audit',
-      headers: ['PRODUCT NAME', 'QTY', 'REVENUE', 'PROFIT'],
+      headers: ['Product Name', 'Qty', 'Revenue', 'Profit'],
       rows: rows,
-      summaryTitle: 'NET PRODUCT REVENUE',
+      summaryTitle: 'Net Product Revenue',
       summaryValue: "$symbol${totalRev.toStringAsFixed(2)}",
       additionalSummary: {
         'Period': '${DateFormat('dd/MM/yy').format(_startDate)} - ${DateFormat('dd/MM/yy').format(_endDate)}',
@@ -8264,7 +8264,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('UNSOLD PRODUCTS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+              const Text('Unsold Products', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: kGoogleRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
@@ -8280,9 +8280,9 @@ class _TopProductsPageState extends State<TopProductsPage> {
           child: const Row(
             children: [
               Expanded(flex: 1, child: Text('#', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary))),
-              Expanded(flex: 4, child: Text('PRODUCT NAME', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-              Expanded(flex: 2, child: Text('STOCK', textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary))),
-              Expanded(flex: 2, child: Text('PRICE', textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary))),
+              Expanded(flex: 4, child: Text('Product Name', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+              Expanded(flex: 2, child: Text('Stock', textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary))),
+              Expanded(flex: 2, child: Text('Price', textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary))),
             ],
           ),
         ),
@@ -8382,10 +8382,10 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'CATEGORY PERFORMANCE AUDIT',
-      headers: ['CATEGORY NAME', 'QTY SOLD', 'REVENUE AMT'],
+      reportTitle: 'Category Performance Audit',
+      headers: ['Category Name', 'Qty Sold', 'Revenue Amt'],
       rows: rows,
-      summaryTitle: 'TOTAL CATEGORY SALES',
+      summaryTitle: 'Total Category Sales',
       summaryValue: "$symbol${totalRevenue.toStringAsFixed(2)}",
       additionalSummary: {
         'Period': '${DateFormat('dd/MM/yy').format(_startDate)} - ${DateFormat('dd/MM/yy').format(_endDate)}',
@@ -8557,7 +8557,7 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("TOTAL CATEGORY REVENUE", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+              const Text("Total Category Revenue", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
               const SizedBox(height: 2),
               Text("${revenue.toStringAsFixed(2)}", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
             ],
@@ -8572,7 +8572,7 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
             child: Column(
               children: [
                 Text("$count", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 16)),
-                const Text("GROUPS", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
+                const Text("Groups", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -8682,9 +8682,9 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
               children: const [
-                Expanded(flex: 3, child: Text("CATEGORY NAME", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text("QTY SOLD", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text("NET REVENUE", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 3, child: Text("Category Name", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Qty Sold", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Net Revenue", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
               ],
             ),
           ),
@@ -8794,9 +8794,9 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
       reportTitle: 'Expense Report - ${DateFormat('MMMM yyyy').format(_startDate)}',
-      headers: ['DESCRIPTION', 'CATEGORY', 'AMOUNT', 'MODE', 'DATE'],
+      headers: ['Description', 'Category', 'Amount', 'Mode', 'Date'],
       rows: rows,
-      summaryTitle: 'TOTAL EXPENDITURE',
+      summaryTitle: 'Total Expenditure',
       summaryValue: "$_currencySymbol${totalAmount.toStringAsFixed(2)}",
       additionalSummary: {
         'Period': '${DateFormat('dd/MM/yy').format(_startDate)} - ${DateFormat('dd/MM/yy').format(_endDate)}',
@@ -8810,8 +8810,8 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
 
   String _getInitials(String name) {
     final words = name.trim().split(RegExp(r'\s+'));
-    if (words.length >= 2) return '${words[0][0]}${words[1][0]}'.toUpperCase();
-    if (name.length >= 2) return name.substring(0, 2).toUpperCase();
+    if (words.length >= 2) return '${words[0][0]}${words[1][0]}';
+    if (name.length >= 2) return name.substring(0, 2);
     return name.isNotEmpty ? name[0].toUpperCase() : '?';
   }
 
@@ -9012,12 +9012,12 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
                               sliver: SliverList(
                                 delegate: SliverChildListDelegate([
                                   const SizedBox(height: 4),
-                                  _buildExpSectionLabel("EXPENSE & PURCHASE TIMELINE"),
+                                  _buildExpSectionLabel("Expense & Purchase Timeline"),
                                   const SizedBox(height: 8),
                                   _buildExpTimelineCard(dayTotals, expDayTotals, purchDayTotals),
                                   const SizedBox(height: 20),
 
-                                  _buildExpSectionLabel("EXPENSE CATEGORY"),
+                                  _buildExpSectionLabel("Expense Category"),
                                   const SizedBox(height: 8),
                                   _buildExpCategoryCard(sortedCategories, expenseCount, totalAmount),
                                   const SizedBox(height: 20),
@@ -9025,7 +9025,7 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      _buildExpSectionLabel("EXPENSE BY CATEGORY"),
+                                      _buildExpSectionLabel("Expense By Category"),
                                       _buildExpCombinedToggle(),
                                     ],
                                   ),
@@ -9043,14 +9043,14 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
                               sliver: SliverList(
                                 delegate: SliverChildListDelegate([
                                   const SizedBox(height: 20),
-                                  _buildExpSectionLabel("PAYMENT BREAKDOWN"),
+                                  _buildExpSectionLabel("Payment Breakdown"),
                                   const SizedBox(height: 8),
                                   _buildExpPaymentCard(cashTotal, onlineTotal, totalRemainingCredit),
 
                                   // ── Credit Outstanding Section ──
                                   if (totalRemainingCredit > 0) ...[
                                     const SizedBox(height: 20),
-                                    _buildExpSectionLabel("CREDIT OUTSTANDING"),
+                                    _buildExpSectionLabel("Credit Outstanding"),
                                     const SizedBox(height: 8),
                                     _buildExpCreditCard(totalRemainingCredit, expRemainingCredit, purchRemainingCredit),
                                   ],
@@ -9102,7 +9102,7 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("TOTAL EXPENDITURE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+                        const Text("Total Expenditure", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
                         Text("$_currencySymbol${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kExpenseRed)),
                       ],
                     ),
@@ -9117,7 +9117,7 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("RECORDS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+                        const Text("Records", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
                         Text("$count", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kTextPrimary)),
                       ],
                     ),
@@ -9535,7 +9535,7 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
               children: [
                 Text(name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kTextPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text(category.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: kTextSecondary, letterSpacing: 0.3)),
+                Text(category, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: kTextSecondary, letterSpacing: 0.3)),
               ],
             ),
           ),
@@ -9688,7 +9688,7 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("REMAINING TO PAY", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+                  Text("Remaining To Pay", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
                   Text("Credit outstanding for this period", style: TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w500)),
                 ],
               ),
@@ -9881,10 +9881,10 @@ class _TaxReportPageState extends State<TaxReportPage> {
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'COMPREHENSIVE TAX REPORT',
-      headers: ['DATE', 'TYPE', 'INVOICE', 'PARTY', 'TOTAL', 'TAX AMOUNT'],
+      reportTitle: 'Comprehensive Tax Report',
+      headers: ['Date', 'Type', 'Invoice', 'Party', 'Total', 'Tax Amount'],
       rows: allRows,
-      summaryTitle: 'TAX BREAKDOWN',
+      summaryTitle: 'Tax Breakdown',
       summaryValue: "",
 
       additionalSummary: {
@@ -9909,11 +9909,11 @@ class _TaxReportPageState extends State<TaxReportPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSectionHeader("SELECT AUDIT DURATION"),
+                _buildSectionHeader("Select Audit Duration"),
                 const SizedBox(height: 10),
-                _buildDateTile("START DATE", _fromDate, _selectFromDate),
+                _buildDateTile("Start Date", _fromDate, _selectFromDate),
                 const SizedBox(height: 8),
-                _buildDateTile("END DATE", _toDate, _selectToDate),
+                _buildDateTile("End Date", _toDate, _selectToDate),
                 const Spacer(),
                 SizedBox(
                   width: double.infinity,
@@ -9928,7 +9928,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
                           borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Text(
-                      'GENERATE AUDIT REPORT',
+                      'Generate Audit Report',
                       style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w900,
@@ -10060,7 +10060,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
 
                             salesRows.add({
                               'date': dt,
-                              'category': 'SALE',
+                              'category': 'Sale',
                               'invoice': data['invoiceNumber']?.toString() ?? 'N/A',
                               'gstNumber': gstNum,
                               'amount': double.tryParse(data['total']?.toString() ?? '0') ?? 0,
@@ -10131,12 +10131,12 @@ class _TaxReportPageState extends State<TaxReportPage> {
                         }
 
                         // Expenses: use 'amount' and 'taxAmount' and 'taxNumber', reference/invoice key is 'referenceNumber'
-                        processInward(expenseSnapshot.data!, 'EXPENSE', 'amount', 'taxAmount', 'taxNumber', invoiceKey: 'referenceNumber', invoiceAutoKey: 'referenceAutoGenerated');
+                        processInward(expenseSnapshot.data!, 'Expense', 'amount', 'taxAmount', 'taxNumber', invoiceKey: 'referenceNumber', invoiceAutoKey: 'referenceAutoGenerated');
                         // Purchases: use 'totalAmount' and 'taxAmount' and 'supplierGstin'
-                        processInward(purchaseSnapshot.data!, 'PURCHASE', 'totalAmount', 'taxAmount', 'supplierGstin', invoiceKey: 'invoiceNumber', invoiceAutoKey: 'invoiceAutoGenerated');
+                        processInward(purchaseSnapshot.data!, 'Purchase', 'totalAmount', 'taxAmount', 'supplierGstin', invoiceKey: 'invoiceNumber', invoiceAutoKey: 'invoiceAutoGenerated');
                         if (creditNoteSnapshot.hasData) {
                           // Credit notes may use 'amount' and 'gst' but likely don't need gst num mapping
-                          processInward(creditNoteSnapshot.data!, 'CREDIT NOTE', 'amount', 'gst', '--', invoiceKey: 'invoiceNumber');
+                          processInward(creditNoteSnapshot.data!, 'Credit Note', 'amount', 'gst', '--', invoiceKey: 'invoiceNumber');
                         }
 
                         double gstNetLiability = totalSalesGST - totalPurchaseGST;
@@ -10208,11 +10208,11 @@ class _TaxReportPageState extends State<TaxReportPage> {
                                       ),
                                     ),
 
-                                    _buildSectionHeader("TAX ON SALES"),
+                                    _buildSectionHeader("Tax On Sales"),
                                     const SizedBox(height: 12),
                                     _buildGstTable(salesRows),
                                     const SizedBox(height: 24),
-                                    _buildSectionHeader("TAX ON PURCHASES"),
+                                    _buildSectionHeader("Tax On Purchases"),
                                     const SizedBox(height: 12),
                                     _buildGstTable(purchaseRows),
                                     const SizedBox(height: 24),
@@ -10339,7 +10339,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  entry.key.toUpperCase(),
+                  entry.key,
                   style: const TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w900,
@@ -10398,18 +10398,18 @@ class _TaxReportPageState extends State<TaxReportPage> {
             ),
             child: Row(
               children: const [
-                Expanded(flex: 2, child: Text("DATE", style: headerStyle)),
-                Expanded(flex: 2, child: Text("CAT", style: headerStyle)),
+                Expanded(flex: 2, child: Text("Date", style: headerStyle)),
+                Expanded(flex: 2, child: Text("Cat", style: headerStyle)),
                 Expanded(flex: 2, child: Text("INV#", style: headerStyle)),
                 Expanded(
                     flex: 3,
                     child: Text("TAX NO.", style: headerStyle)),
                 Expanded(
                     flex: 2,
-                    child: Text("AMT", textAlign: TextAlign.right, style: headerStyle)),
+                    child: Text("Amt", textAlign: TextAlign.right, style: headerStyle)),
                 Expanded(
                     flex: 2,
-                    child: Text("TAX", textAlign: TextAlign.right, style: headerStyle)),
+                    child: Text("Tax", textAlign: TextAlign.right, style: headerStyle)),
               ],
             ),
           ),
@@ -10506,7 +10506,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
             ),
             child: Row(
               children: [
-                const Expanded(flex: 9, child: Text('TOTAL',
+                const Expanded(flex: 9, child: Text('Total',
                     style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
@@ -10584,7 +10584,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('TAX ON SALES',
+                const Text('Tax On Sales',
                     style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
@@ -10612,7 +10612,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('TAX ON PURCHASES',
+                const Text('Tax On Purchases',
                     style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
@@ -10640,7 +10640,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
         //     child: Column(
         //       crossAxisAlignment: CrossAxisAlignment.start,
         //       children: [
-        //         const Text('NET TAX DUE',
+        //         const Text('Net Tax Due',
         //             style: TextStyle(
         //                 fontSize: 9,
         //                 fontWeight: FontWeight.w900,
@@ -10980,7 +10980,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
                                                   const SizedBox(height: 16),
 
                                                   // ── Comparison Cards with arrows ──
-                                                  _buildSectionHeader("INCOME VS EXPENSE"),
+                                                  _buildSectionHeader("Income Vs Expense"),
                                                   const SizedBox(height: 8),
                                                   _buildComparisonRow("Today", incomeToday, totalExpToday),
                                                   const SizedBox(height: 8),
@@ -11075,7 +11075,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("BUSINESS PERFORMANCE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
+              const Text("Business Performance", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -11228,7 +11228,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("INCOME VS EXPENSE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
+              const Text("Income Vs Expense", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
               const Text("Last 7 Days", style: TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
             ],
           ),
@@ -11493,7 +11493,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("NET CREDIT POSITION", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
+              const Text("Net Credit Position", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
               const SizedBox(height: 4),
               Text(
                 "${CurrencyService().symbol}${net.abs().toStringAsFixed(2)}",
@@ -12024,7 +12024,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                                         manualCreditCashCount + manualCreditOnlineCount, kWarningOrange),
                                   ],
                                   const SizedBox(height: 24),
-                                  _buildSectionHeader("SETTLEMENT SUMMARY"),
+                                  _buildSectionHeader("Settlement Summary"),
                                   const SizedBox(height: 8),
                                   _buildLedgerRow("Cash Position", totalInCash, totalOutCash, kIncomeGreen),
                                   const SizedBox(height: 4),
@@ -12085,7 +12085,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("NET CASH POSITION", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              const Text("Net Cash Position", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
               const SizedBox(height: 2),
               Text(" ${net.toStringAsFixed(2)}", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: net >= 0 ? kIncomeGreen : kExpenseRed, letterSpacing: -1)),
             ],
@@ -12114,7 +12114,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
             Text(" ${val.toStringAsFixed(0)}", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color)),
           ],
         ),
-        Text(color == kIncomeGreen ? "IN" : "OUT", style: const TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: kTextSecondary)),
+        Text(color == kIncomeGreen ? "IN" : "Out", style: const TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: kTextSecondary)),
       ],
     );
   }
@@ -12488,7 +12488,7 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("TOTAL STAFF REVENUE", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              const Text("Total Staff Revenue", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
               const SizedBox(height: 2),
               Text("${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
             ],
@@ -12503,7 +12503,7 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
             child: Column(
               children: [
                 Text("$bills", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 16)),
-                const Text("BILLS", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
+                const Text("Bills", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -12549,7 +12549,7 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text("${(data['totalAmount'] as double).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kPrimaryColor, letterSpacing: -0.5)),
-                  const Text("TOTAL CONTRIBUTION", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
+                  const Text("Total Contribution", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
                 ],
               ),
             ],
