@@ -851,6 +851,9 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     final bool isExtend = selectedPlanData['rank'] == currentPlanData['rank'];
 
     int payablePrice = price;
+    double appliedCredit = 0;
+    int cycleDays = 0;
+    int remainingDays = 0;
     if (isUpgrade) {
       // Apply remaining-day credit from current plan when possible.
       final now = DateTime.now();
@@ -858,10 +861,11 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       final exp = _currentExpiryDate;
       final int currentPrice = (currentPlanData['price'][_selectedDuration.toString()] ?? 0) as int;
       if (start != null && exp != null && exp.isAfter(now) && exp.isAfter(start) && currentPrice > 0) {
-        final cycleDays = _daysBetween(start, exp);
-        final remainingDays = _daysBetween(now, exp);
+        cycleDays = _daysBetween(start, exp);
+        remainingDays = _daysBetween(now, exp);
         if (cycleDays > 0 && remainingDays > 0) {
           final credit = (currentPrice * (remainingDays / cycleDays));
+          appliedCredit = credit;
           payablePrice = (price - credit).ceil();
           if (payablePrice < 0) payablePrice = 0;
         }
@@ -872,8 +876,9 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     bool isEnabled;
 
     if (isCurrent) {
+      // Extend current plan (renew)
       buttonText = isExtend ? (_isPaymentInProgress ? "PROCESSING..." : "Extend Plan") : "Active Plan";
-      isEnabled = isExtend && !_isPaymentInProgress;
+      isEnabled = isExtend && _subscriptionLoaded && !_isPaymentInProgress;
     } else if (isUpgrade) {
       // Block upgrades until we load subscription dates (to avoid wrong proration).
       final canProceed = _subscriptionLoaded;
@@ -887,7 +892,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     }
 
     final bool isYearly = _selectedDuration == 12;
-    final double dailyPrice = price > 0 ? (isYearly ? price / 365.0 : price / 30.0) : 0;
+    final double dailyPrice = payablePrice > 0 ? (isYearly ? payablePrice / 365.0 : payablePrice / 30.0) : 0;
     final String dailyPriceStr = dailyPrice < 10 ? dailyPrice.toStringAsFixed(1) : dailyPrice.toStringAsFixed(0);
     
     final int monthlyPrice = selectedPlanData['price']['1'] ?? 0;
@@ -925,6 +930,26 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                   ],
                 ),
               ),
+            if (isUpgrade && appliedCredit > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.discount_outlined, color: kGoogleGreen, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Credit for remaining $remainingDays/$cycleDays days", 
+                        style: const TextStyle(fontSize: 12, color: kBlack87, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Text(
+                      "-₹${appliedCredit.toStringAsFixed(0)}",
+                      style: const TextStyle(fontSize: 12, color: kGoogleGreen, fontWeight: FontWeight.w900),
+                    ),
+                  ],
+                ),
+              ),
             Row(
               children: [
                 Expanded(
@@ -935,7 +960,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                       Text(isYearly ? "TOTAL (YEARLY)" : "TOTAL (MONTHLY)", style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
                       const SizedBox(height: 2),
                       Text("$payablePrice", style: TextStyle(color: themeColor, fontSize: 24, fontWeight: FontWeight.w900)),
-                      if (price > 0) ...[
+                      if (payablePrice > 0) ...[
                         const SizedBox(height: 2),
                         Text("Only $dailyPriceStr per day", style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w700)),
                       ],
